@@ -70,3 +70,6 @@ P4 vs P3 isolates the contribution of patterns. P4+ vs P5 tests whether patterns
   - **Change:** every turn is now tagged directly by `claude-haiku-5.5`.
   - **Service:** the fast classifier is retrained on those tags, for the live service only.
   - **Timing:** this was decided before any pattern feature was computed.
+- **2026-11-16, label coverage.** Labeling stopped at 10,776 of 12,124 queued turns (88.9%) when the labeling budget ran out.
+  - **Why this is still a valid sample:** the queue is randomly interleaved within each period × similarity stratum, so the labeled turns are a stratified random sample. Coverage is 88.5-89.3% in every stratum, and all metrics are reweighted to the stratum populations.
+  - **Timing:** this was decided before any confirmation-period result was computed.
