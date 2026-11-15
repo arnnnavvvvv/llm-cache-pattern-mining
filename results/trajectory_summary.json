@@ -1,0 +1,8 @@
+{
+  "eligible_sessions": 710,
+  "matched": 710,
+  "judged": 83,
+  "oracle_turns_saved_per_session": 4.695774647887324,
+  "single_answer_cache_turns_saved": 0.0,
+  "note": "exploratory; satisfaction proxy pending human check"
+}

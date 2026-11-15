@@ -1,0 +1,246 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,backgrounds}
+\usepackage[hidelinks]{hyperref}
+
+\input{numbers}
+
+\begin{document}
+
+\title{Pattern-Mining-Driven Cache Admission and Routing for Multi-Provider LLM Gateways}
+
+\author{
+\IEEEauthorblockN{1\textsuperscript{st} Arnav Gupta}
+\IEEEauthorblockA{\textit{School of Computer Science and Engineering} \\
+\textit{VIT-AP University}\\
+Amaravati, India \\
+email}
+\and
+\IEEEauthorblockN{2\textsuperscript{nd} Author Name}
+\IEEEauthorblockA{\textit{School of Computer Science and Engineering} \\
+\textit{VIT-AP University}\\
+Amaravati, India \\
+email}
+\and
+\IEEEauthorblockN{3\textsuperscript{rd} Author Name}
+\IEEEauthorblockA{\textit{School of Computer Science and Engineering} \\
+\textit{VIT-AP University}\\
+Amaravati, India \\
+email}
+\and
+\IEEEauthorblockN{4\textsuperscript{th} Author Name}
+\IEEEauthorblockA{\textit{School of Computer Science and Engineering} \\
+\textit{VIT-AP University}\\
+Amaravati, India \\
+email}
+}
+
+\maketitle
+
+\begin{abstract}
+Semantic caches in large language model (LLM) gateways decide whether to reuse a stored answer by comparing one incoming request with earlier requests, one query at a time. We show that this view misses what actually determines whether reuse is safe in conversational traffic: the behavioral role of the request and of the cached entry. On \nTurns{} turns of real multi-turn chatbot traffic, with every candidate reuse judged against the answer the user actually received, a similarity cache returns an unacceptable answer for \nearWrongAll{} of near-duplicate requests. At the same similarity, follow-ups, continuations and corrections are wrong \nearWrongDep{} of the time against \nearWrongSelf{} for self-contained requests. We introduce behavior-aware admission: dialogue acts and intents are mined into frequent and sequential patterns per session and per user, every request and cache entry is placed in a mined behavioral state, and class association rules over pairs of states give a reuse-safety prior that enters an expected-benefit admission rule. We evaluate with a stateful gateway replay in which every policy keeps its own cache, a reference-based LLM judge, pre-registered criteria and a single confirmation run on a held-out later period. \resultSentence{} We release the full pipeline, a live admission service and the evaluation protocol.
+\end{abstract}
+
+\begin{IEEEkeywords}
+semantic caching, LLM gateway, sequential pattern mining, association rules, dialogue acts, model routing
+\end{IEEEkeywords}
+
+\section{Introduction}
+Organizations increasingly place a gateway between their applications and several LLM providers. The gateway authenticates traffic, enforces budgets, routes each request to a model and, increasingly, answers repeated requests from a cache. Semantic caching extends exact-match caching by reusing an answer whenever a new request is close enough to a stored one in embedding space~\cite{bang2023gptcache}. Follow-up work learns better similarity models~\cite{gill2025meancache}, adapts thresholds per embedding region~\cite{schroeder2025vectorq} or per query category~\cite{wang2025category}, and adds conversational context to the match~\cite{yan2025contextcache}.
+
+All of these systems treat admission as a property of one request, possibly with its recent context, measured against one stored request. Real gateway traffic is not like that. Users iterate: they paste material and ask for a summary, then for key points, then for a shorter version; they say ``continue'', ``try again'' or ``that is wrong''. Two requests can be textually identical and still need different answers, because one is a fresh question and the other refers to an answer the user has just seen. Conversely, a cached answer that was itself produced in the middle of a refinement loop is a poor answer to a fresh question, however similar the two requests look. The decision depends on behavior, and behavior has structure that recurs across sessions and users.
+
+This paper asks whether that structure can be mined and used. Our hypothesis is that behavioral patterns mined from gateway traffic improve cache admission (and model routing) compared with fixed-threshold and per-query similarity policies. We make the following contributions.
+
+\begin{itemize}
+\item \textbf{A quantified failure mode of similarity caching.} On \nTurns{} real chatbot turns, judged against the answer each user actually received, we show that reuse safety is governed by dialogue behavior: at near-duplicate similarity, context-dependent requests are wrong roughly twice as often as self-contained ones, on both the request and the cache-entry side (Section~\ref{sec:finding}).
+\item \textbf{Behavior-aware admission.} We mine frequent itemsets (FP-Growth~\cite{han2000fpgrowth}) and sequential patterns (PrefixSpan~\cite{pei2001prefixspan}) over dialogue acts and intents per session and per user, re-mined daily from past traffic only. We define the behavioral state of a request and of a cache entry, and learn class association rules~\cite{liu1998cba} over state pairs that act as a reuse-safety prior inside an expected-benefit decision rule (Section~\ref{sec:method}). To our knowledge this is the first semantic cache that conditions admission on mined behavioral patterns of both sides of a reuse.
+\item \textbf{A rigorous evaluation protocol for cache admission.} A stateful replay keeps a separate cache per policy, labels come from a reference-based judge validated against human raters, metrics are read at matched wrong-reuse levels, and the claims, comparators and pass rule are pre-registered and tested once on a later, held-out period (Section~\ref{sec:setup}).
+\item \textbf{Extensions to routing and trajectory caching.} The same mined patterns feed a strong/weak model router evaluated on human preference votes, and an exploratory trajectory cache that fast-tracks conversations to the answer that satisfied similar users (Sections~\ref{sec:routing} and~\ref{sec:trajectory}).
+\end{itemize}
+
+\section{Related Work}
+\label{sec:related}
+\textbf{Semantic caching.} GPTCache~\cite{bang2023gptcache} popularized embedding-based reuse with a global similarity threshold. MeanCache~\cite{gill2025meancache} keeps per-user caches and learns the similarity model with federated learning. VectorQ~\cite{schroeder2025vectorq} replaces the global threshold with learned per-embedding threshold regions, and category-aware caching~\cite{wang2025category} varies thresholds, time-to-live and quotas by query category. ContextCache~\cite{yan2025contextcache} adds the dialogue history to the match through attention over earlier turns. Table~\ref{tab:positioning} positions our work: earlier systems decide from the similarity of the current request (with or without its context); ours additionally conditions on mined, recurring behavioral patterns of both the request and the cached entry.
+
+\textbf{Model routing.} FrugalGPT~\cite{chen2024frugalgpt} cascades models to cut cost, and RouteLLM~\cite{ong2025routellm} learns strong/weak routers from human preference data collected on Chatbot Arena~\cite{chiang2024arena}. These routers score one prompt at a time; we add mined session patterns as router features.
+
+\textbf{Pattern mining and dialogue quality.} Frequent-pattern and sequential-pattern mining~\cite{han2000fpgrowth,pei2001prefixspan} and associative classification~\cite{liu1998cba} are classical tools that, to our knowledge, have not been used for LLM cache admission. User-satisfaction estimation over multi-turn dialogue~\cite{bodigutla2020satisfaction} motivates our satisfaction proxy for trajectory caching. LLM judges~\cite{zheng2023judge} are now a common way to score open-ended responses; we use one with a reference answer and validate it against human raters.
+
+\begin{table}[t]
+\caption{Positioning against prior semantic caches and routers}
+\label{tab:positioning}
+\centering
+\footnotesize
+\begin{tabular}{@{}lccc@{}}
+\toprule
+System & Decision signal & Uses context & Mined behavior \\
+\midrule
+GPTCache~\cite{bang2023gptcache} & global threshold & no & no \\
+MeanCache~\cite{gill2025meancache} & learned similarity & no & no \\
+VectorQ~\cite{schroeder2025vectorq} & per-region threshold & no & no \\
+Category-aware~\cite{wang2025category} & per-category policy & no & no \\
+ContextCache~\cite{yan2025contextcache} & attention over history & yes & no \\
+RouteLLM~\cite{ong2025routellm} (routing) & per-prompt router & no & no \\
+\textbf{This work} & \textbf{rule prior + verifier} & \textbf{yes} & \textbf{yes} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Behavior-Aware Admission}
+\label{sec:method}
+
+\begin{figure*}[t]
+\centering
+\begin{tikzpicture}[
+  node distance=5mm and 9mm,
+  box/.style={draw, rounded corners=2pt, align=center, font=\footnotesize, minimum height=9mm, text width=24mm, fill=white},
+  store/.style={box, fill=black!4},
+  arr/.style={-{Stealth[length=2mm]}, thick}]
+\node[box] (req) {Incoming request\\(session, user, text)};
+\node[box, right=of req] (emb) {Embed + intent\\+ dialogue act};
+\node[box, right=of emb] (cand) {Top-$K$ earlier\\candidates};
+\node[box, right=of cand] (feat) {Per-query, context\\and pattern features};
+\node[box, right=of feat] (dec) {Expected-benefit\\decision rule};
+\node[store, below=of emb] (miner) {Daily pattern miner\\(FP-Growth, PrefixSpan)};
+\node[store, below=of cand] (cache) {Per-policy cache\\(answers + states)};
+\node[store, below=of feat] (rules) {Behavioral association\\rules $\pi(r)$};
+\node[box, above=of dec] (serve) {Serve cached answer};
+\node[box, below=of dec] (fresh) {Call provider\\(router picks model)};
+\draw[arr] (req) -- (emb);
+\draw[arr] (emb) -- (cand);
+\draw[arr] (cand) -- (feat);
+\draw[arr] (feat) -- (dec);
+\draw[arr] (dec) -- (serve);
+\draw[arr] (dec) -- (fresh);
+\draw[arr] (miner) -- (feat);
+\draw[arr] (cache) -- (cand);
+\draw[arr] (rules) -- (feat);
+\draw[arr] (fresh.west) -| (cache.south);
+\end{tikzpicture}
+\caption{Gateway with behavior-aware admission. Patterns are re-mined daily from past traffic; association rules are learned from labeled past reuses; every policy keeps its own cache, so an answer served from cache never becomes a cache entry.}
+\label{fig:arch}
+\end{figure*}
+
+\subsection{Problem setting}
+A gateway receives turns $t=1,2,\dots$ in time order. Turn $t$ has a session $s_t$, a user $u_t$, a request $x_t$ and, once answered, a response $y_t$. When $x_t$ arrives, the cache holds earlier answered turns. Let $\mathcal{C}_t$ be the $K$ cached turns most similar to $x_t$ under cosine similarity $\mathrm{sim}(\cdot,\cdot)$ of sentence embeddings~\cite{reimers2019sbert,wang2020minilm}, restricted to similarity at least $\rho$. Admission chooses either one candidate $c\in\mathcal{C}_t$, whose answer $y_c$ is returned, or a fresh provider call. A reuse is \emph{acceptable} when $y_c$ serves $x_t$ as well as the answer the user actually received.
+
+\subsection{Behavioral tokens}
+Each turn receives an intent $\iota_t$ (one of $k$ clusters of request embeddings, fit on the training period) and a dialogue act $a_t \in \{$new request, follow-up, continuation, correction, new ask on the same material$\}$. Intents capture \emph{what} is asked; acts capture \emph{how the turn relates to the conversation}, which is what the failure mode above depends on.
+
+\subsection{Pattern mining}
+For an entity $e$ (a session, or a user across sessions) let $\mathrm{seq}(e)$ be its token sequence. The support of a pattern $p$ over a set of entities $E$ and the confidence of a sequential rule are
+\begin{align}
+\mathrm{supp}(p) &= \frac{|\{e\in E : p \sqsubseteq \mathrm{seq}(e)\}|}{|E|}, \label{eq:supp}\\
+\mathrm{conf}(a_{1:k} \Rightarrow b) &= \frac{\mathrm{supp}(a_1 \dots a_k\, b)}{\mathrm{supp}(a_1 \dots a_k)}, \label{eq:conf}
+\end{align}
+where $\sqsubseteq$ denotes subsequence containment. Itemsets over $(\iota,a)$ tokens are mined with FP-Growth and sequences of length up to three with PrefixSpan. Mining is repeated every day using only traffic that arrived before that day, so no feature of a turn depends on later traffic.
+
+\subsection{Behavioral states and association rules}
+The behavioral state of a turn with act history $h=(a_1,\dots,a_m)$ is the longest suffix of length at most two that the miner found frequent,
+\begin{equation}
+\sigma(h) = \begin{cases} \text{start} & m=0,\\ \arg\max_{\ell\le 2}\{h_{m-\ell+1:m} : h_{m-\ell+1:m}\in\mathcal{F}\} & \text{if one exists},\\ \text{rare} & \text{otherwise}, \end{cases}
+\end{equation}
+where $\mathcal{F}$ is the set of frequent act sequences. For a request $x_t$ and a candidate $c$ we form the rule key $r=(\sigma_t, a_t, \sigma_c, a_c)$, combining the state and act of both sides of the reuse. From labeled past reuses we estimate a smoothed class association rule~\cite{liu1998cba}
+\begin{equation}
+\pi(r) = \frac{\sum_{i\in r} y_i + m\,\bar y}{n_r + m}, \label{eq:rule}
+\end{equation}
+where $y_i\in\{0,1\}$ marks acceptable reuse, $n_r$ is the number of labeled pairs under rule $r$, $\bar y$ is the overall acceptance rate and $m$ a pseudo-count. Training rows receive out-of-fold estimates so that no row's prior uses its own label.
+
+\subsection{Expected-benefit admission}
+For every candidate $c\in\mathcal{C}_t$ a gradient-boosted verifier~\cite{ke2017lightgbm} estimates $f(z_c)=\Pr(\text{acceptable}\mid z_c)$ from a feature vector $z_c$ that contains the similarity profile (including the softmax share $\exp(\mathrm{sim}_c/\tau)/\sum_{j}\exp(\mathrm{sim}_j/\tau)$), intents, acts, lengths and time gap; in the pattern-aware policy it also contains the mined pattern features and $\pi(r)$. The probability that the answer is still valid decays with age $\Delta_c$ (half-life $T$), and admission serves the candidate with the highest expected benefit when it is positive enough:
+\begin{align}
+q_c &= f(z_c)\cdot 2^{-\Delta_c/T}, \\
+B_c &= U\,q_c - L\,(1-q_c), \label{eq:benefit}\\
+\text{serve } c^\star &= \arg\max_{c} B_c \quad \text{iff} \quad B_{c^\star}\ge\theta, \label{eq:decision}
+\end{align}
+where $U$ is the value of a correct reuse and $L$ the cost of a wrong one. Sweeping $\theta$ traces the trade-off between serving more requests and serving more wrong answers.
+
+\section{Experimental Setup}
+\label{sec:setup}
+\subsection{Data}
+We replay \nTurns{} English multi-turn turns (\nSessions{} sessions, \nUsers{} hashed users) from WildChat~\cite{zhao2024wildchat}, keeping each request together with the answer the user received. Sessions are assigned by the time of their first turn to a training period (60\%), a development period (20\%) and a later confirmation period (20\%). Embeddings use all-MiniLM-L6-v2~\cite{reimers2019sbert,wang2020minilm} with exact inner-product search~\cite{johnson2021faiss}. Every turn's dialogue act is tagged by an LLM. Candidates are the top three earlier turns with similarity at least 0.70; \nCandTurns{} turns have at least one.
+
+\subsection{Ground truth}
+A judge model sees the new request, the answer the user actually received (the reference), and each candidate's request and answer, and decides for each candidate whether returning its answer would have been acceptable. Three judge models labeled the same \nPickPairs{} pairs and agreed on \judgeAgreeRange{} of them; the mid-sized model was chosen as the judge for cost. These pairs also form the human gold set (two independent raters per pair). Turns were labeled in a random order that is stratified by period and similarity band, so any labeled prefix is a stratified sample; \nLabeledTurns{} turns (\labelCoverage{}) were labeled, and all metrics are reweighted to the stratum populations.
+
+\subsection{Policies}
+We compare six admission policies: \textbf{P1} a fixed cosine threshold; \textbf{P2} per-intent calibrated thresholds; \textbf{P3} the learned per-query verifier; \textbf{P5} P3 plus context-embedding similarities in the style of ContextCache~\cite{yan2025contextcache}; \textbf{P4} P3 plus mined pattern features and the rule prior $\pi$; and \textbf{P4+} P5 plus the same pattern features. P4 versus P3 isolates the contribution of mined behavior; P4 versus P5 tests it against raw context.
+
+\subsection{Replay and metrics}
+Each policy replays the entire stream with its own cache: an answer served from cache never enters it, so earlier decisions change later options. With population weights $w_t=N_{p,b}/n_{p,b}$ for a labeled turn in period $p$ and similarity band $b$, and $N$ turns in the evaluation period, the hit rate and wrong-reuse rate at threshold $\theta$ are
+\begin{align}
+\mathrm{HR}(\theta) &= \frac{1}{N}\sum_t w_t\,\mathbb{1}[\text{served}_t(\theta)], \\
+\mathrm{WR}(\theta) &= \frac{\sum_t w_t\,\mathbb{1}[\text{served}_t(\theta)\wedge\neg\text{acc}_t]}{\sum_t w_t\,\mathbb{1}[\text{served}_t(\theta)]},
+\end{align}
+and the primary readout is the hit rate at a matched wrong-reuse level $\alpha\in\{5\%,10\%\}$:
+\begin{equation}
+\mathrm{HR}@\alpha = \max_\theta\,\{\mathrm{HR}(\theta) : \mathrm{WR}(\theta)\le\alpha\}. \label{eq:hra}
+\end{equation}
+Uncertainty comes from 1000 session-level bootstrap resamples~\cite{efron1993bootstrap} of the paired difference between P4 and each comparator, with Holm correction~\cite{holm1979} across the two levels. Before the confirmation data were evaluated we fixed the pass rule: P4 must beat P1, P2, P3 and P5 at both levels with corrected intervals excluding zero. All design changes were logged with dates before a single run on frozen code.
+
+\section{Results}
+\label{sec:results}
+
+\subsection{Behavior governs reuse safety}
+\label{sec:finding}
+Fig.~\ref{fig:finding} breaks the judged wrong-reuse rate down by similarity band and by the dialogue act of the new request. Similarity matters, but at every band the act matters more than the remaining similarity differences: among near-duplicates ($\mathrm{sim}\ge 0.97$, \nNearPairs{} pairs) the wrong-reuse rate is \nearWrongSelf{} for self-contained requests and \nearWrongDep{} for context-dependent ones. The same split holds on the cache side: answers produced by context-dependent turns are wrong for a new request \nearWrongCandDep{} of the time against \nearWrongCandSelf{} for answers to self-contained turns. A per-query similarity cache cannot see either effect. Table~\ref{tab:rules} lists mined association rules at the extremes.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/wrong_reuse_by_act.png}
+\caption{Judged wrong-reuse rate by similarity band and dialogue act of the new request (all labeled pairs).}
+\label{fig:finding}
+\end{figure}
+
+\input{table_rules}
+
+\subsection{Admission on the held-out period}
+\input{table_main}
+
+\resultParagraph{}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/confirm_curves.png}
+\caption{Hit rate against wrong-reuse rate on the confirmation period. Dashed lines mark the pre-registered levels.}
+\label{fig:curves}
+\end{figure}
+
+\subsection{Controls, ablations and mechanism}
+\input{table_controls}
+
+\controlsParagraph{}
+
+\subsection{Routing}
+\label{sec:routing}
+\routingParagraph{}
+
+\subsection{Trajectory fast-tracking (exploratory)}
+\label{sec:trajectory}
+\trajectoryParagraph{}
+
+\subsection{Deployment cost}
+\serviceParagraph{}
+
+\section{Threats to Validity}
+The ground truth comes from an LLM judge; three models agreed on 85--88\% of pairs, and the human gold set provides the final check. Dialogue acts are LLM-tagged. The data are one public corpus over two weeks, and replay cannot capture how users would have reacted to a cached answer. The candidate pool is limited to the three most similar earlier turns per request. About 11\% of queued turns were not labeled; labeling followed a stratified random order and metrics are reweighted, so this reduces precision rather than introducing bias. Routing uses conversation-level human votes rather than turn-level outcomes.
+
+\section{Conclusion}
+Whether a cached LLM answer can be reused is, to a large degree, a behavioral question: the same words mean different things at the start of a conversation and in the middle of a refinement loop. Mining that behavior from gateway traffic, and turning it into association-rule priors over the states of both the request and the cache entry, gives an admission policy that knows when similarity is misleading. \conclusionSentence{} Future work includes live deployment in a gateway, turn-level routing outcomes, and trajectory caches validated with users.
+
+\section*{Acknowledgment}
+The authors thank Dr. Sandipan Maiti for guidance throughout this work.
+
+\bibliographystyle{IEEEtran}
+\bibliography{refs}
+
+\end{document}
