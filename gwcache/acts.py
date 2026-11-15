@@ -116,10 +116,12 @@ def features(turns: pd.DataFrame, vecs: np.ndarray, prev: pd.Series) -> np.ndarr
 
 # trains the classifier on seed labels and reports cross-validated agreement with the llm labels
 def train(x: np.ndarray, y: np.ndarray, groups: np.ndarray) -> tuple[LogisticRegression, float]:
-    model = LogisticRegression(max_iter=3000, C=2.0, class_weight="balanced")
-    pred = cross_val_predict(model, x, y, cv=GroupKFold(n_splits=5), groups=groups)
+    model = LogisticRegression(max_iter=1000, C=2.0, class_weight="balanced")
+    # cross-validate on at most 6k rows so the check stays cheap on a laptop
+    sub = np.random.default_rng(config.load()["seed"]).permutation(len(y))[:6000]
+    pred = cross_val_predict(model, x[sub], y[sub], cv=GroupKFold(n_splits=5), groups=groups[sub])
     model.fit(x, y)
-    return model, f1_score(y, pred, average="macro")
+    return model, f1_score(y[sub], pred, average="macro")
 
 
 # blind sheet for the human act check, sampled from training turns
