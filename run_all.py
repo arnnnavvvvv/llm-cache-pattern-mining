@@ -19,6 +19,8 @@ STEPS = [
     ["scripts/11_trajectory.py"],
     ["scripts/12_service.py", "bench"],
     ["scripts/13_figures.py"],
+    ["scripts/14_analysis.py"],
+    ["scripts/15_paper.py"],
 ]
 
 
