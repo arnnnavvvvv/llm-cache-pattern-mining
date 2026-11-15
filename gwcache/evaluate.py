@@ -5,7 +5,8 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import GroupKFold
 
-from gwcache import config, decision, metrics, replay, stats
+from gwcache import config, metrics, replay, stats
+from gwcache.experiments import fit_score
 
 
 # joins primary-judge labels onto the pair table
@@ -80,8 +81,7 @@ def cv_diagnostic(pairs: pd.DataFrame, labels: pd.DataFrame, turns: pd.DataFrame
         groups = lab["turn_id"].map(turns.set_index("turn_id")["session_id"])
         for fold, (tr, te) in enumerate(folds.split(lab, groups=groups), start=1):
             for name, cols in feature_sets.items():
-                model = decision.fit_verifier(lab.iloc[tr], cols, seed=cfg["seed"] + rep)
-                test = lab.iloc[te].assign(score=decision.score_learned(model, lab.iloc[te], cols))
+                test = lab.iloc[te].assign(score=fit_score(lab.iloc[tr], lab.iloc[te], cols))
                 best = test.sort_values("score", ascending=False).drop_duplicates("turn_id")
                 served = best["score"] >= 0
                 tp = int((served & (best["acceptable"] == 1)).sum())

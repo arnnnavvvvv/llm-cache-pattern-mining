@@ -2,7 +2,7 @@
 import numpy as np
 import pandas as pd
 
-from gwcache import config, decision, metrics, patterns
+from gwcache import config, decision, metrics, patterns, rules
 from gwcache.features import CONTEXT, PER_QUERY
 
 FEATURE_SETS = {
@@ -16,14 +16,23 @@ ABLATIONS = {
     "abl_sequential_only": PER_QUERY + patterns.SESSION_SEQ,
     "abl_session_only": PER_QUERY + patterns.SESSION_SEQ + patterns.SESSION_FREQ,
     "abl_user_only": PER_QUERY + patterns.USER_SEQ,
+    "abl_rules_only": PER_QUERY + patterns.RULES,
+    "abl_no_rules": PER_QUERY + [c for c in patterns.ALL if c not in patterns.RULES],
 }
+
+
+# fits the verifier on the training rows and scores every pair, adding the association-rule prior when it is used
+def fit_score(train: pd.DataFrame, pairs: pd.DataFrame, cols: list[str]) -> np.ndarray:
+    if "pat_rule_prior" in cols:
+        train, pairs = rules.add_prior(train, pairs, seed=config.load()["seed"])
+    return decision.score_learned(decision.fit_verifier(train, cols), pairs, cols)
 
 
 # scorer that trains the verifier on the given columns and scores every pair
 def learned(cols: list[str]):
     # closure used by the replay comparison
     def scorer(train: pd.DataFrame, pairs: pd.DataFrame) -> np.ndarray:
-        return decision.score_learned(decision.fit_verifier(train, cols), pairs, cols)
+        return fit_score(train, pairs, cols)
     return scorer
 
 
@@ -33,7 +42,7 @@ def placebo(table: pd.DataFrame, cols: list[str]):
     def scorer(train: pd.DataFrame, pairs: pd.DataFrame) -> np.ndarray:
         assert (table["turn_id"].to_numpy() == pairs["turn_id"].to_numpy()).all()
         tr = table.merge(train[["turn_id", "cand_turn_id", "acceptable"]], on=["turn_id", "cand_turn_id"])
-        return decision.score_learned(decision.fit_verifier(tr, cols), table, cols)
+        return fit_score(tr, table, cols)
     return scorer
 
 

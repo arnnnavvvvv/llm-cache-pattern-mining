@@ -11,7 +11,10 @@ DEPENDENT_ACTS = {"follow_up", "continuation", "correction", "new_ask_same_mater
 SESSION_SEQ = ["pat_act_conf", "pat_dep_prior", "pat_intent_conf", "pat_cand_intent_conf", "pat_cand_dep_prior"]
 SESSION_FREQ = ["pat_freq_support", "pat_freq_matches"]
 USER_SEQ = ["pat_user_intent_conf", "pat_user_cand_conf"]
-ALL = SESSION_SEQ + SESSION_FREQ + USER_SEQ
+# numeric state features; the raw state strings only feed the association-rule prior
+STATE = ["pat_same_state", "pat_cand_act_conf"]
+RULES = ["pat_rule_prior"]
+ALL = SESSION_SEQ + SESSION_FREQ + USER_SEQ + STATE + RULES
 
 
 # counts of every frequent subsequence (length 1..max_len) as a dict keyed by tuple
@@ -70,6 +73,17 @@ def mine_before(turns: pd.DataFrame, cutoff: pd.Timestamp) -> dict:
         "user_intents": mine_sequences(seqs["user_intents"].tolist(), p["seq_min_support"], p["seq_max_len"]),
         "n_sessions": past["session_id"].nunique(),
     }
+
+
+# behavioral state of a turn: the longest suffix of its act history that the miner found frequent
+def state(act_counts: dict, history: list) -> str:
+    if not history:
+        return "start"
+    for k in (2, 1):
+        suffix = tuple(history[-k:])
+        if len(suffix) == k and suffix in act_counts:
+            return ">".join(suffix)
+    return "rare"
 
 
 # prior that the next act is context-dependent, given the act history
@@ -155,15 +169,21 @@ def add_to_pairs(pairs: pd.DataFrame, turns: pd.DataFrame, tf: pd.DataFrame, dai
     for col in ["pat_act_conf", "pat_dep_prior", "pat_intent_conf", "pat_freq_support", "pat_freq_matches"]:
         p[col] = tf.loc[p["turn_id"], col].to_numpy()
     p["pat_cand_dep_prior"] = tf.loc[p["cand_turn_id"], "pat_dep_prior"].to_numpy()
-    cand_conf, user_cur, user_cand = [], [], []
+    cand_conf, user_cur, user_cand, state_q, state_c, cand_act_conf = [], [], [], [], [], []
     for tid, cid in zip(p["turn_id"], p["cand_turn_id"]):
         mined = daily[tf.at[tid, "_mined"]]
+        hq, hc = hist.at[tid, "prev_acts"], hist.at[cid, "prev_acts"]
+        state_q.append(state(mined["acts"], hq))
+        state_c.append(state(mined["acts"], hc))
+        cand_act_conf.append(confidence(mined["acts"], hc, t.at[cid, "act"]))
         cand_intent = t.at[cid, "intent"]
         cand_conf.append(confidence(mined["intents"], hist.at[tid, "prev_intents"], cand_intent))
         uh = tf.at[tid, "pat_user_hist"]
         user_cur.append(confidence(mined["user_intents"], uh, t.at[tid, "intent"]))
         user_cand.append(confidence(mined["user_intents"], uh, cand_intent))
     p["pat_cand_intent_conf"], p["pat_user_intent_conf"], p["pat_user_cand_conf"] = cand_conf, user_cur, user_cand
+    p["pat_state_q"], p["pat_state_c"], p["pat_cand_act_conf"] = state_q, state_c, cand_act_conf
+    p["pat_same_state"] = (p["pat_state_q"] == p["pat_state_c"]).astype(int)
     return p
 
 
