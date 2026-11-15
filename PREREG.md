@@ -77,3 +77,7 @@ P4 vs P3 isolates the contribution of patterns. P4+ vs P5 tests whether patterns
   - **Change:** the grid now has 300 thresholds over the top 30% of best scores plus 60 below. The replay is unchanged except that it skips turns that cannot be served at a given threshold.
   - **Scope:** the change applies identically to every policy.
   - **Timing:** this was decided on dev results and logged before the confirmation run.
+- **2026-11-16, behavioral states and association-rule prior.** Two additions to the pattern feature set (P4, P4+), designed from the hypothesis and tested once on dev.
+  - **Behavioral state:** each request and each cache entry gets the longest frequent act-sequence suffix it sits in, from the daily-mined patterns. Two features come from it: whether the two states match, and the mined confidence of the entry's own act.
+  - **Rule prior:** a smoothed class-association-rule estimate of reuse acceptability per (request state, request act, entry state, entry act), mined from training-period labels only, out-of-fold for training rows.
+  - **Dev result:** P4's hit rate at ≤10% wrong-reuse went from 1.81% to 1.93%. No further changes after this entry. Confirmation follows under the freeze tag.
