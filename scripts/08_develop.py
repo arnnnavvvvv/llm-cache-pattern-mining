@@ -8,7 +8,7 @@ import joblib
 import numpy as np
 import pandas as pd
 
-from gwcache import config, decision, evaluate, experiments, storage
+from gwcache import config, decision, evaluate, experiments, features, storage
 from gwcache.features import CATEGORICAL
 
 
@@ -27,7 +27,7 @@ def save_bundle(pairs, labels, turns):
 # replays every policy on dev with bootstrap cis, plus the k-fold spread diagnostic on train
 def main():
     turns, labels, strata = storage.load("turns"), storage.load("labels"), storage.load("label_queue")
-    pairs = storage.load("pairs")
+    pairs = features.as_categorical(storage.load("pairs"))
     pol = experiments.main_policies()
     res = evaluate.compare(pairs, labels, turns, strata, pol, ["train"], "dev",
                            focal="P4_patterns", n_boot=config.load()["eval"]["n_boot"])

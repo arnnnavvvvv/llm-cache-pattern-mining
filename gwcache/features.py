@@ -11,6 +11,16 @@ CONTEXT = ["ctx_sim", "ctx_to_cand_req", "req_to_cand_ctx", "has_ctx"]
 CATEGORICAL = ["intent", "cand_intent", "act", "cand_act"]
 
 
+# restores categorical dtypes with fixed category lists (parquet round-trips can drop them)
+def as_categorical(df: pd.DataFrame) -> pd.DataFrame:
+    cfg = config.load()
+    cats = {"intent": list(range(cfg["intents"]["k"])), "act": cfg["acts"]["labels"]}
+    df = df.copy()
+    for col in CATEGORICAL:
+        df[col] = pd.Categorical(df[col].astype(object if "act" in col else int), categories=cats["act" if "act" in col else "intent"])
+    return df
+
+
 # mean embedding of each turn's previous (up to two) turns in its session, zeros for first turns
 def context_vectors(turns: pd.DataFrame, vecs: np.ndarray) -> np.ndarray:
     pos = np.arange(len(turns))
@@ -61,6 +71,4 @@ def pair_table(turns: pd.DataFrame, cands: pd.DataFrame, vecs: np.ndarray) -> pd
     p["ctx_sim"] = np.einsum("ij,ij->i", ctx[a], ctx[b])
     p["ctx_to_cand_req"] = np.einsum("ij,ij->i", ctx[a], vecs[b])
     p["req_to_cand_ctx"] = np.einsum("ij,ij->i", vecs[a], ctx[b])
-    for col in CATEGORICAL:
-        p[col] = p[col].astype("category")
-    return p.drop(columns=["session_id", "cand_session_id", "user_id", "cand_user_id"])
+    return as_categorical(p).drop(columns=["session_id", "cand_session_id", "user_id", "cand_user_id"])

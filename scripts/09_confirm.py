@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import pandas as pd
 
-from gwcache import config, evaluate, experiments, storage
+from gwcache import config, evaluate, experiments, features, storage
 
 
 # refuses to run unless the working tree is clean and HEAD carries a tag, so the run is tied to frozen code
@@ -33,8 +33,8 @@ def main_test(pairs, labels, turns, strata, n_boot) -> dict:
 def controls(pairs, labels, turns, strata, n_boot):
     cols = experiments.FEATURE_SETS["P4_patterns"]
     pol = {"P3_per_query": experiments.learned(experiments.FEATURE_SETS["P3_per_query"]),
-           "placebo_shuffled": experiments.placebo(storage.load("pairs_shuffled"), cols),
-           "placebo_borrowed": experiments.placebo(storage.load("pairs_borrowed"), cols)}
+           "placebo_shuffled": experiments.placebo(features.as_categorical(storage.load("pairs_shuffled")), cols),
+           "placebo_borrowed": experiments.placebo(features.as_categorical(storage.load("pairs_borrowed")), cols)}
     pol.update({name: experiments.learned(c) for name, c in experiments.ABLATIONS.items()})
     res = evaluate.compare(pairs, labels, turns, strata, pol, ["train", "dev"], "confirm", focal="P3_per_query", n_boot=n_boot)
     storage.save_result(res["summary"], "confirm_controls_summary")
@@ -54,7 +54,7 @@ def robustness(pairs, labels, turns, strata, n_boot):
 def main():
     tag = frozen_tag()
     n_boot = config.load()["eval"]["n_boot"]
-    turns, labels, strata, pairs = storage.load("turns"), storage.load("labels"), storage.load("label_queue"), storage.load("pairs")
+    turns, labels, strata, pairs = storage.load("turns"), storage.load("labels"), storage.load("label_queue"), features.as_categorical(storage.load("pairs"))
     res = main_test(pairs, labels, turns, strata, n_boot)
     storage.save_result(experiments.mechanism(res, strata, turns, ["P3_per_query", "P4_patterns"], 0.10), "confirm_mechanism")
     controls(pairs, labels, turns, strata, n_boot)
