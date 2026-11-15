@@ -85,7 +85,11 @@ eval:
 
 routing:
   dataset: lmsys/lmsys-arena-human-preference-55k
-  max_conversations: 20000
+  min_turns: 2
+  # quality is read at these caps on the share of requests sent to the strong model
+  strong_share_levels: [0.3, 0.5]
+  strong_models: "gpt-4|claude-1|claude-2|claude-3-opus|claude-3-sonnet|mistral-large|mistral-medium|gemini-pro|gemini-1.5"
+  weak_models: "gpt-3.5|llama-2-(7|13)b|vicuna|mistral-7b|claude-instant|zephyr|openchat|alpaca|koala|chatglm|dolly|stablelm|oasst|fastchat|rwkv|mpt-7b|gpt4all|codellama-7b|gemma-2b|gemma-7b|phi"
 
 trajectory:
   min_session_turns: 3
