@@ -5,6 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import joblib
 import numpy as np
 import pandas as pd
 
@@ -26,6 +27,7 @@ def main():
     model, cv_f1 = acts.train(x[rows], seeds["act"].to_numpy(), turns["session_id"].to_numpy()[rows])
     turns["act"] = model.predict(x)
     storage.save(turns, "turns")
+    joblib.dump(model, config.path("work") / "act_model.joblib")
 
     sheet_path = config.path("results") / "human_checks" / "act_sheet.csv"
     sheet_path.parent.mkdir(parents=True, exist_ok=True)

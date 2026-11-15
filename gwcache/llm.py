@@ -41,7 +41,9 @@ class Client:
     def json_call(self, model: str, system: str, user: str, max_tokens: int = 3000, log=print) -> dict:
         from groq import APIConnectionError, APIStatusError, RateLimitError
 
-        params = {"temperature": 0, "max_tokens": max_tokens, "reasoning_effort": "low"}
+        params = {"temperature": 0, "max_tokens": max_tokens}
+        if "gpt-oss" in model:
+            params["reasoning_effort"] = "low"
         key = cache_key(model, system, user, params)
         cached = _cache_file(model, key)
         if cached.exists():
@@ -54,8 +56,8 @@ class Client:
                     messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
                     temperature=0,
                     max_completion_tokens=max_tokens,
-                    reasoning_effort="low",
                     response_format={"type": "json_object"},
+                    **({"reasoning_effort": "low"} if "gpt-oss" in model else {}),
                 )
                 content = json.loads(resp.choices[0].message.content)
                 usage = {"prompt": resp.usage.prompt_tokens, "completion": resp.usage.completion_tokens}
@@ -67,6 +69,12 @@ class Client:
                 wait = _retry_after(err)
                 log(f"rate limited on {model}, waiting {wait:.0f}s")
                 time.sleep(wait)
-            except (APIConnectionError, APIStatusError, json.JSONDecodeError) as err:
+            except APIStatusError as err:
+                # client-side mistakes (bad params, bad model) will not fix themselves, so stop instead of looping
+                if 400 <= err.status_code < 500:
+                    raise
+                log(f"server error {err.status_code}, retrying in 15s")
+                time.sleep(15)
+            except (APIConnectionError, json.JSONDecodeError) as err:
                 log(f"llm error, retrying in 15s: {str(err)[:120]}")
                 time.sleep(15)
