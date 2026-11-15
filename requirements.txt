@@ -1,0 +1,17 @@
+pandas
+numpy
+pyarrow
+pyyaml
+datasets
+sentence-transformers
+faiss-cpu
+scikit-learn
+lightgbm
+mlxtend
+prefixspan
+groq
+matplotlib
+pytest
+fastapi
+uvicorn
+httpx

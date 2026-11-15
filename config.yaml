@@ -1,0 +1,97 @@
+# every tunable setting for the project lives here, fixed before the confirmation run
+
+seed: 42
+
+paths:
+  raw: data/raw
+  work: data/work
+  llm_cache: data/llm_cache
+  results: results
+  figures: results/figures
+  hf_cache: D:/Capstone/.cache/huggingface
+  datasets_cache: D:/Capstone/.cache/datasets
+
+ingest:
+  dataset: allenai/WildChat-1M
+  target_queries: 30000
+  min_turns: 2
+  language: English
+  # sessions are assigned to a period by the time of their first turn
+  split: {train: 0.6, dev: 0.2, confirm: 0.2}
+
+embedding:
+  model: sentence-transformers/all-MiniLM-L6-v2
+  alt_model: BAAI/bge-small-en-v1.5
+  batch_size: 64
+
+intents:
+  k: 20
+
+acts:
+  labels: [new_request, follow_up, continuation, correction, new_ask_same_material]
+  seed_size: 1500
+  seed_model: openai/gpt-oss-20b
+  turns_per_request: 20
+  human_check_size: 300
+  min_macro_f1: 0.70
+
+candidates:
+  top_k: 3
+  sim_floor: 0.70
+
+judge:
+  model: openai/gpt-oss-120b
+  second_model: openai/gpt-oss-20b
+  items_per_request: 4
+  request_chars: 400
+  answer_chars: 500
+
+labels:
+  gold_size: 200
+  pilot_queries: 300
+  sim_bins: [0.70, 0.80, 0.90, 0.97, 1.0001]
+  min_judge_human_agreement: 0.80
+  # smallest gain in hit rate (share of all queries) worth claiming, used by the power calc
+  min_effect: 0.01
+
+decision:
+  softmax_temperature: 0.05
+  reuse_utility: 1.0
+  wrong_reuse_cost: 1.0
+  staleness_half_life_days: 30
+
+patterns:
+  freq_min_support: 0.02
+  seq_min_support: 0.01
+  seq_max_len: 3
+  remine_every_days: 1
+
+lgbm:
+  n_estimators: 300
+  learning_rate: 0.05
+  num_leaves: 15
+  min_child_samples: 20
+  subsample: 0.8
+  subsample_freq: 1
+  colsample_bytree: 0.8
+  verbosity: -1
+
+eval:
+  wrong_reuse_levels: [0.05, 0.10]
+  n_folds: 5
+  n_shuffles: 3
+  n_boot: 1000
+  alpha: 0.05
+
+routing:
+  dataset: lmsys/lmsys-arena-human-preference-55k
+  max_conversations: 20000
+
+trajectory:
+  min_session_turns: 3
+  match_sim: 0.85
+  human_check_size: 100
+
+service:
+  host: 127.0.0.1
+  port: 8077
