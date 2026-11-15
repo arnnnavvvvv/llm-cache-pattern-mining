@@ -29,7 +29,7 @@ intents:
 
 acts:
   labels: [new_request, follow_up, continuation, correction, new_ask_same_material]
-  seed_size: 1500
+  seed_size: 1000
   seed_model: openai/gpt-oss-20b
   turns_per_request: 20
   human_check_size: 300
