@@ -61,7 +61,7 @@ def table_main(summary: pd.DataFrame, comp: pd.DataFrame) -> str:
         cell = lambda l: f"{pts(c.at[l, 'gain'])} [{100 * c.at[l, 'ci_low']:+.2f}, {100 * c.at[l, 'ci_high']:+.2f}]{star if c.at[l, 'holm_reject'] else ''}"
         comp_rows.append(f"P4 $-$ {NAMES[other].split(' ')[0]} & {cell(0.05)} & {cell(0.1)} & \\\\")
     return "\n".join([
-        "\\begin{table}[t]", "\\caption{Confirmation period: hit rate (\\% of all requests) at matched wrong-reuse, with 95\\% session-bootstrap intervals}",
+        "\\begin{table}[t]", "\\caption{Confirmation period: hit rate (\\% of all requests) at matched wrong-reuse with 95\\% session-bootstrap intervals, and best net utility per 100 requests ($U=L=1$)}",
         "\\label{tab:main}", "\\centering", "\\footnotesize", "\\setlength{\\tabcolsep}{3pt}", "\\begin{tabular}{@{}lccc@{}}", "\\toprule",
         "Policy & HR@5\\% & HR@10\\% & Utility \\\\", "\\midrule", *rows, "\\midrule",
         "\\multicolumn{4}{@{}l}{Paired gains in points; $^\\ast$ significant after Holm correction} \\\\", *comp_rows,
