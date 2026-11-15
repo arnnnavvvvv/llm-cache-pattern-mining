@@ -29,6 +29,7 @@ def test_cache_key_stable():
 
 # a refusal inside a batch is narrowed down to the single item that caused it
 def test_refusal_splitting_isolates_item():
+    # fake model call that refuses any batch containing item 3
     def fn(batch):
         if 3 in batch:
             raise llm.Refusal("x")
