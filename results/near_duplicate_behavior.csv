@@ -1,0 +1,6 @@
+behavior,side,count,wrong_reuse
+all,all,7360,0.5629076086956522
+context_dependent,request,3658,0.7572443958447239
+self_contained,request,3702,0.3708806050783361
+context_dependent,cache_entry,3356,0.7315256257449345
+self_contained,cache_entry,4004,0.4215784215784216
