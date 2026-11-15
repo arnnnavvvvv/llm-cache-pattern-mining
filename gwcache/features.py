@@ -46,7 +46,8 @@ def pair_table(turns: pd.DataFrame, cands: pd.DataFrame, vecs: np.ndarray) -> pd
     p["same_intent"] = (p["intent"] == p["cand_intent"]).astype(int)
     p["same_session"] = (p["session_id"] == p["cand_session_id"]).astype(int)
     p["same_user"] = (p["user_id"] == p["cand_user_id"]).astype(int)
-    gap = (t.loc[p["turn_id"], "timestamp"].to_numpy() - t.loc[p["cand_turn_id"], "timestamp"].to_numpy()) / np.timedelta64(1, "s")
+    gap = (t.loc[p["turn_id"], "timestamp"].reset_index(drop=True)
+           - t.loc[p["cand_turn_id"], "timestamp"].reset_index(drop=True)).dt.total_seconds().to_numpy(dtype=float)
     p["gap_days"] = np.clip(gap, 0, None) / 86400
     p["log_gap"] = np.log1p(np.clip(gap, 0, None))
     p["turn_index"] = t.loc[p["turn_id"], "turn_index"].to_numpy()
