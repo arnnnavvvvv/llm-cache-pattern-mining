@@ -73,3 +73,7 @@ P4 vs P3 isolates the contribution of patterns. P4+ vs P5 tests whether patterns
 - **2026-11-16, label coverage.** Labeling stopped at 10,776 of 12,124 queued turns (88.9%) when the labeling budget ran out.
   - **Why this is still a valid sample:** the queue is randomly interleaved within each period × similarity stratum, so the labeled turns are a stratified random sample. Coverage is 88.5-89.3% in every stratum, and all metrics are reweighted to the stratum populations.
   - **Timing:** this was decided before any confirmation-period result was computed.
+- **2026-11-16, curve resolution.** The hit-rate/wrong-reuse curve was read at 80 evenly spaced quantile thresholds. On the dev period that left no threshold between "serve one turn" and about 0.5% hit rate, which zeroed out the strict-level readout for policies with continuous scores.
+  - **Change:** the grid now has 300 thresholds over the top 30% of best scores plus 60 below. The replay is unchanged except that it skips turns that cannot be served at a given threshold.
+  - **Scope:** the change applies identically to every policy.
+  - **Timing:** this was decided on dev results and logged before the confirmation run.

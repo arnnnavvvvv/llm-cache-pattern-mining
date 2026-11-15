@@ -18,13 +18,13 @@ def run(cand: np.ndarray, score: np.ndarray, thresholds: np.ndarray) -> tuple[np
     n = len(cand)
     served = np.zeros((len(thresholds), n), dtype=bool)
     chosen = np.full((len(thresholds), n), -1, dtype=np.int64)
-    has_cand = np.flatnonzero((cand >= 0).any(axis=1))
+    best = np.where(cand >= 0, score, -np.inf).max(axis=1)
     for ti, th in enumerate(thresholds):
+        # only turns with some candidate at or above the threshold can ever be served at it
+        live = np.flatnonzero(best >= th)
         in_cache = np.ones(n, dtype=bool)
-        for i in has_cand:
+        for i in live:
             ok = (cand[i] >= 0) & in_cache[np.maximum(cand[i], 0)]
-            if not ok.any():
-                continue
             s = np.where(ok, score[i], -np.inf)
             j = int(np.argmax(s))
             if s[j] >= th:
@@ -33,9 +33,12 @@ def run(cand: np.ndarray, score: np.ndarray, thresholds: np.ndarray) -> tuple[np
     return served, chosen
 
 
-# threshold grid from the spread of each turn's best score, plus one that serves nothing
-def threshold_grid(score: np.ndarray, rows: np.ndarray, n: int = 80) -> np.ndarray:
+# threshold grid over each turn's best score: dense in the top 30% where strict wrong-reuse levels are read,
+# coarser below, plus one threshold that serves nothing
+def threshold_grid(score: np.ndarray, rows: np.ndarray, n_top: int = 300, n_rest: int = 60) -> np.ndarray:
     best = score[rows].max(axis=1)
     best = best[np.isfinite(best)]
-    grid = np.unique(np.quantile(best, np.linspace(0, 1, n))) if len(best) else np.array([])
-    return np.r_[grid, np.inf]
+    if not len(best):
+        return np.array([np.inf])
+    grid = np.r_[np.quantile(best, np.linspace(0.7, 1, n_top)), np.quantile(best, np.linspace(0, 0.7, n_rest))]
+    return np.r_[np.unique(grid), np.inf]
