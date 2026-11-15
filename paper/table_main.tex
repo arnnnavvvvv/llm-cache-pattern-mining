@@ -1,0 +1,25 @@
+\begin{table}[t]
+\caption{Confirmation period: hit rate (\% of all requests) at matched wrong-reuse, with 95\% session-bootstrap intervals}
+\label{tab:main}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Policy & HR@5\% & HR@10\% & Utility \\
+\midrule
+P1 fixed threshold & 0.02 [0.00, 0.17] & 0.02 [0.00, 0.26] & 0.95 \\
+P2 per-intent thresholds & 0.80 [0.58, 1.07] & 0.80 [0.60, 4.34] & 2.71 \\
+P3 per-turn verifier & 1.46 [0.21, 3.63] & 4.62 [1.65, 5.95] & 4.23 \\
+P5 + context embedding & 1.27 [0.39, 3.97] & 3.87 [0.99, 5.05] & 4.10 \\
+\textbf{P4 + mined patterns} & 1.12 [0.19, 3.61] & 4.49 [0.88, 5.71] & 4.04 \\
+P4+ context and patterns & 1.83 [0.13, 3.89] & 3.80 [1.95, 5.69] & 3.87 \\
+\midrule
+\multicolumn{4}{@{}l}{Paired gains in points; $^\ast$ significant after Holm correction} \\
+P4 $-$ P1 & +1.10 [+0.17, +3.61]$^\ast$ & +4.47 [+0.82, +5.67]$^\ast$ & \\
+P4 $-$ P2 & +0.32 [-0.62, +2.62] & +3.69 [-1.54, +4.58] & \\
+P4 $-$ P3 & -0.34 [-2.08, +0.92] & -0.13 [-2.21, +1.55] & \\
+P4 $-$ P5 & -0.15 [-2.41, +1.22] & +0.62 [-1.68, +2.68] & \\
+\bottomrule
+\end{tabular}
+\end{table}

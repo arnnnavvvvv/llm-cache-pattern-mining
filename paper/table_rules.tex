@@ -1,0 +1,21 @@
+\begin{table*}[t]
+\caption{Mined behavioral association rules with the lowest and highest reuse acceptability (training and development labels, at least 30 pairs)}
+\label{tab:rules}
+\centering
+\footnotesize
+\begin{tabular}{@{}llllrr@{}}
+\toprule
+Request state & Request act & Entry state & Entry act & Acceptable (\%) & Pairs \\
+\midrule
+start & new request & correction$\to$correction & correction & 0 & 34 \\
+new request & follow up & new request$\to$follow up & follow up & 2 & 52 \\
+new ask same material$\to$new ask same material & new ask same material & start & new request & 3 & 39 \\
+follow up$\to$new request & follow up & new request & follow up & 3 & 30 \\
+\midrule
+start & new request & start & new request & 47 & 2643 \\
+new request$\to$new request & new request & start & new request & 45 & 159 \\
+start & new request & rare & new request & 44 & 43 \\
+rare & new request & rare & new request & 39 & 108 \\
+\bottomrule
+\end{tabular}
+\end{table*}

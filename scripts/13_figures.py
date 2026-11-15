@@ -14,6 +14,8 @@ RES = config.path("results")
 FIG = config.path("figures")
 INK, MUTED, GRID, SURFACE = "#0b0b0b", "#52514e", "#e4e3df", "#fcfcfb"
 # categorical slots of the reference palette, assigned to policies in a fixed order
+LABELS = {"P1_fixed": "P1 fixed threshold", "P2_per_intent": "P2 per-intent thresholds", "P3_per_query": "P3 per-turn verifier",
+          "P5_context": "P5 + context embedding", "P4_patterns": "P4 + mined patterns", "P4plus_context_patterns": "P4+ context and patterns"}
 COLORS = {"P1_fixed": "#2a78d6", "P2_per_intent": "#eb6834", "P3_per_query": "#1baf7a",
           "P5_context": "#eda100", "P4_patterns": "#e87ba4", "P4plus_context_patterns": "#008300"}
 
@@ -41,15 +43,15 @@ def curve_figure(name: str, title: str):
     fig, ax = plt.subplots(figsize=(8, 5), facecolor=SURFACE)
     for level in config.load()["eval"]["wrong_reuse_levels"]:
         ax.axvline(level * 100, color=MUTED, linewidth=1, linestyle="--")
-        ax.text(level * 100, 0.02, f" {int(level * 100)}% level", transform=ax.get_xaxis_transform(), color=MUTED, fontsize=9)
     for policy, color in COLORS.items():
         c = curves[(curves["policy"] == policy) & (curves["hit_rate"] > 0)].sort_values("hit_rate")
         if len(c):
-            ax.plot(c["wrong_reuse"] * 100, c["hit_rate"] * 100, color=color, linewidth=2, label=policy)
+            ax.plot(c["wrong_reuse"] * 100, c["hit_rate"] * 100, color=color, linewidth=1.6, label=LABELS[policy])
     style(ax, title, "Wrong-reuse rate (% of served answers not acceptable)", "Hit rate (% of all requests)")
-    ax.set_xlim(0, 50)
-    ax.set_ylim(bottom=0)
-    ax.legend(frameon=False, labelcolor=INK)
+    ax.set_xlim(0, 30)
+    visible = curves[(curves["wrong_reuse"] <= 0.30) & curves["policy"].isin(COLORS)]
+    ax.set_ylim(0, 1.15 * 100 * visible["hit_rate"].max())
+    ax.legend(frameon=False, labelcolor=INK, fontsize=8, loc="upper left")
     fig.tight_layout()
     fig.savefig(FIG / f"{name}.png", dpi=200, facecolor=SURFACE)
     plt.close(fig)
@@ -62,9 +64,13 @@ def routing_figure():
         return
     curves = pd.read_csv(path)
     fig, ax = plt.subplots(figsize=(8, 5), facecolor=SURFACE)
-    for router, color in zip(["per_query", "context", "patterns"], ["#1baf7a", "#eda100", "#e87ba4"]):
+    for router, color, label in zip(["per_query", "context", "patterns"], ["#1baf7a", "#eda100", "#e87ba4"],
+                                    ["per-query router", "context router", "pattern router"]):
         c = curves[curves["router"] == router]
-        ax.plot(c["strong_share"] * 100, c["quality"] * 100, color=color, linewidth=2, label=router)
+        ax.plot(c["strong_share"] * 100, c["quality"] * 100, color=color, linewidth=2, label=label)
+    # random routing mixes always-cheap and always-strong linearly
+    base = curves[curves["router"] == "per_query"]["quality"].iloc[-1]
+    ax.plot([0, 100], [base * 100, 100], color=MUTED, linewidth=1.2, linestyle=":", label="random routing")
     for cap in config.load()["routing"]["strong_share_levels"]:
         ax.axvline(cap * 100, color=MUTED, linewidth=1, linestyle="--")
     style(ax, "Routing: quality vs share sent to the strong model", "Requests sent to the strong model (%)",

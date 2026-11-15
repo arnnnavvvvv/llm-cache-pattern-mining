@@ -19,7 +19,7 @@ def build_engine() -> service.Engine:
     return service.Engine(config.path("work") / "service_bundle.joblib", patterns.mine_before(turns, cutoff))
 
 
-# seeds the cache with dev turns, then times admit calls for a sample of confirm turns through the http layer
+# seeds the cache with dev turns through the engine, then times admit calls for confirm turns through the http layer
 def bench(n_seed: int, n_admit: int):
     from fastapi.testclient import TestClient
 
@@ -27,8 +27,7 @@ def bench(n_seed: int, n_admit: int):
     engine = build_engine()
     client = TestClient(service.create_app(engine))
     for r in turns[turns["period"] == "dev"].head(n_seed).itertuples():
-        client.post("/record", json={"session_id": r.session_id, "user_id": r.user_id, "turn_id": r.turn_id,
-                                     "request": r.request, "answer": r.answer, "act": r.act, "intent": int(r.intent)})
+        engine.record(r.session_id, r.user_id, r.turn_id, r.request, r.answer, r.act, int(r.intent))
     sample = turns[turns["period"] == "confirm"].head(n_admit)
     lat, served, wall = [], 0, []
     for r in sample.itertuples():

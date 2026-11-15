@@ -1,0 +1,6 @@
+router,strong_share,quality,quality_at_strong30,quality_at_strong50
+always_strong,1.0,1.0,,
+always_cheap,0.0,0.45824255628177196,,
+per_query,,,0.6114742193173566,0.7334785766158315
+context,,,0.6267247639796659,0.7312999273783588
+patterns,,,0.6187363834422658,0.7233115468409586

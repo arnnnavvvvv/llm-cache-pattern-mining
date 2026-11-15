@@ -21,10 +21,10 @@ Texts may be shortened with [...]. Reply with JSON only: {"acts": [{"id": <item 
 
 # surface cues that are cheap to compute and carry a lot of the act signal
 CUES = {
-    "cue_continue": r"\b(continue|go on|keep going|next part|carry on)\b",
-    "cue_refine": r"\b(shorter|longer|more|less|again|rewrite|rephrase|instead|also|add|change|make it)\b",
-    "cue_correct": r"\b(wrong|error|incorrect|not work|doesn'?t work|fix|mistake|still)\b",
-    "cue_deictic": r"\b(this|that|it|above|previous|these|those)\b",
+    "cue_continue": r"\b(?:continue|go on|keep going|next part|carry on)\b",
+    "cue_refine": r"\b(?:shorter|longer|more|less|again|rewrite|rephrase|instead|also|add|change|make it)\b",
+    "cue_correct": r"\b(?:wrong|error|incorrect|not work|doesn'?t work|fix|mistake|still)\b",
+    "cue_deictic": r"\b(?:this|that|it|above|previous|these|those)\b",
 }
 
 

@@ -57,7 +57,8 @@ def table_main(summary: pd.DataFrame, comp: pd.DataFrame) -> str:
     for other in ["P1_fixed", "P2_per_intent", "P3_per_query", "P5_context"]:
         c = comp[comp["comparison"] == f"P4_patterns - {other}"].set_index("level")
         # one comparison cell: gain, interval, and a star when holm rejects
-        cell = lambda l: f"{pts(c.at[l, 'gain'])} [{100 * c.at[l, 'ci_low']:+.2f}, {100 * c.at[l, 'ci_high']:+.2f}]{'$^\\ast$' if c.at[l, 'holm_reject'] else ''}"
+        star = "$^\\ast$"
+        cell = lambda l: f"{pts(c.at[l, 'gain'])} [{100 * c.at[l, 'ci_low']:+.2f}, {100 * c.at[l, 'ci_high']:+.2f}]{star if c.at[l, 'holm_reject'] else ''}"
         comp_rows.append(f"P4 $-$ {NAMES[other].split(' ')[0]} & {cell(0.05)} & {cell(0.1)} & \\\\")
     return "\n".join([
         "\\begin{table}[t]", "\\caption{Confirmation period: hit rate (\\% of all requests) at matched wrong-reuse, with 95\\% session-bootstrap intervals}",
@@ -173,8 +174,10 @@ def numbers() -> str:
             f"On {rv['conversations']:,} multi-turn conversations in which human voters compared a strong and a weak model~\\cite{{lmsys2024arena55k}}, "
             f"the weak model was at least as good in {pct(rv['weak_ok_share'])} of cases. With the strong model limited to 30\\% of requests, "
             f"routers reach a quality of {pct(r.at['per_query', 'quality_at_strong30'])} (per-query), {pct(r.at['context', 'quality_at_strong30'])} "
-            f"(context) and {pct(r.at['patterns', 'quality_at_strong30'])} (patterns); at 50\\% the values are "
-            f"{pct(r.at['per_query', 'quality_at_strong50'])}, {pct(r.at['context', 'quality_at_strong50'])} and {pct(r.at['patterns', 'quality_at_strong50'])}. "
+            f"(context) and {pct(r.at['patterns', 'quality_at_strong30'])} (patterns), against {pct(0.3 + 0.7 * rv['weak_ok_share'])} for "
+            f"random routing at the same budget; at 50\\% the values are "
+            f"{pct(r.at['per_query', 'quality_at_strong50'])}, {pct(r.at['context', 'quality_at_strong50'])} and {pct(r.at['patterns', 'quality_at_strong50'])} "
+            f"against {pct(0.5 + 0.5 * rv['weak_ok_share'])} at random. Conversation-level votes on this sample carry little routing signal for any router. "
             f"The pattern router's gain over the per-query router is {pts(c.at[0.3, 'gain'])} and {pts(c.at[0.5, 'gain'])} points "
             f"({'significant' if rv['h1b_pass'] else 'not significant'} after Holm correction). Fig.~\\ref{{fig:routing}} shows the full trade-off."
         ).replace(",", "{,}", 1)
