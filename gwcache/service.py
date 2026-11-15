@@ -27,6 +27,7 @@ class Engine:
         self.model, self.cols, self.categories = b["model"], b["cols"], b["categories"]
         self.centers = embed.normalize(b["centers"].astype(np.float32))
         self.act_model = b["act_model"]
+        self.rule_table, self.rule_default = b["rules"]
         self.encoder = SentenceTransformer(cfg["embedding"]["model"], cache_folder=cfg["paths"]["hf_cache"])
         self.mined = mined
         self.k, self.floor = cfg["candidates"]["top_k"], cfg["candidates"]["sim_floor"]
@@ -70,12 +71,20 @@ class Engine:
         s.requests.append(request); s.vecs.append(v); s.acts.append(act); s.intents.append(intent)
         return result
 
-    # adds a freshly answered request to the cache
+    # adds a freshly answered request to the cache, remembering its behavioral state at the time it was asked
     def record(self, session_id: str, user_id: str, turn_id: str, request: str, answer: str, act: str, intent: int) -> None:
+        s = self.sessions.setdefault(session_id, Session())
         v = self._vec(request)
+        asked_here = bool(s.requests) and s.requests[-1] == request
+        history = s.acts[:-1] if asked_here else list(s.acts)
         self.cache_vecs = np.vstack([self.cache_vecs, v[None, :]])
         self.cache_meta.append({"turn_id": turn_id, "answer": answer, "session_id": session_id, "user_id": user_id,
-                                "act": act, "intent": intent, "time": time.time(), "req_len": len(request), "ctx": self._ctx(self.sessions.get(session_id))})
+                                "act": act, "intent": intent, "time": time.time(), "req_len": len(request),
+                                "ctx": self._ctx(s) if not asked_here else self._ctx(Session(vecs=s.vecs[:-1])),
+                                "state": patterns.state(self.mined["acts"], history),
+                                "act_conf": patterns.confidence(self.mined["acts"], history, act)})
+        if not asked_here:
+            s.requests.append(request); s.vecs.append(v); s.acts.append(act); s.intents.append(intent)
         self.user_intents.setdefault(user_id, []).append(intent)
 
     # mean of the last two request vectors in a session (zeros when there is no history)
@@ -92,6 +101,7 @@ class Engine:
         top_sims = np.r_[sims[top], [np.nan] * (3 - len(top))]
         soft = np.exp((sims[top] - sims[top][0]) / tau)
         uh = self.user_intents.get(user_id, [])[-10:]
+        state_q = patterns.state(self.mined["acts"], s.acts)
         rows = []
         for r, ci in enumerate(top):
             m = self.cache_meta[ci]
@@ -114,6 +124,8 @@ class Engine:
                 "pat_freq_matches": 0,
                 "pat_user_intent_conf": patterns.confidence(self.mined["user_intents"], uh, intent),
                 "pat_user_cand_conf": patterns.confidence(self.mined["user_intents"], uh, m["intent"]),
+                "pat_same_state": int(state_q == m["state"]), "pat_cand_act_conf": m["act_conf"],
+                "pat_rule_prior": self.rule_table.get("|".join([state_q, act, m["state"], m["act"]]), self.rule_default),
             })
         df = pd.DataFrame(rows)
         for col, cats in self.categories.items():

@@ -8,7 +8,7 @@ import joblib
 import numpy as np
 import pandas as pd
 
-from gwcache import config, decision, evaluate, experiments, features, storage
+from gwcache import config, decision, evaluate, experiments, features, rules, storage
 from gwcache.features import CATEGORICAL
 
 
@@ -18,7 +18,10 @@ def save_bundle(pairs, labels, turns):
     lab = evaluate.labeled_pairs(pairs, labels)
     lab = lab[lab["turn_id"].map(turns.set_index("turn_id")["period"]).isin(["train", "dev"])]
     work = config.path("work")
-    joblib.dump({"model": decision.fit_verifier(lab, cols), "cols": cols,
+    lab, _ = rules.add_prior(lab, lab.head(1), seed=config.load()["seed"])
+    table, default = rules.mine_rules(lab)
+    storage.save_result(rules.top_rules(lab), "behavioral_rules")
+    joblib.dump({"model": decision.fit_verifier(lab, cols), "cols": cols, "rules": (table.to_dict(), default),
                  "categories": {c: list(pairs[c].cat.categories) for c in CATEGORICAL},
                  "centers": np.load(work / "intent_centers.npy"), "act_model": joblib.load(work / "act_model.joblib")},
                 work / "service_bundle.joblib")
