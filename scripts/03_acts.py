@@ -24,10 +24,14 @@ def main():
     x = acts.features(turns, vecs, prev)
     pos = pd.Series(np.arange(len(turns)), index=turns["turn_id"])
     rows = pos.loc[seeds["turn_id"]].to_numpy()
-    model, cv_f1 = acts.train(x[rows], seeds["act"].to_numpy(), turns["session_id"].to_numpy()[rows])
-    turns["act"] = model.predict(x)
+    _, cv_f1 = acts.train(x[rows], seeds["act"].to_numpy(), turns["session_id"].to_numpy()[rows])
+
+    # every turn gets an llm tag; the fast classifier is retrained on all of them for the live service
+    turns["act"] = acts.tag_all(turns, prev, config.load()["acts"]["tag_model"]).to_numpy()
     storage.save(turns, "turns")
+    model, cv_f1_all = acts.train(x, turns["act"].to_numpy(), turns["session_id"].to_numpy())
     joblib.dump(model, config.path("work") / "act_model.joblib")
+    seed_vs_tag = float((turns.set_index("turn_id").loc[seeds["turn_id"], "act"].to_numpy() == seeds["act"].to_numpy()).mean())
 
     sheet_path = config.path("results") / "human_checks" / "act_sheet.csv"
     sheet_path.parent.mkdir(parents=True, exist_ok=True)
@@ -36,7 +40,8 @@ def main():
     human = acts.score_human(pd.read_csv(sheet_path, encoding="utf-8-sig"), turns.set_index("turn_id")["act"])
 
     report = {"seed_labels": len(seeds), "seed_distribution": seeds["act"].value_counts().to_dict(),
-              "cv_macro_f1_vs_llm": cv_f1, "human_check": human,
+              "seed_classifier_cv_macro_f1": cv_f1, "service_classifier_cv_macro_f1": cv_f1_all,
+              "tag_model_vs_seed_model_agreement": seed_vs_tag, "human_check": human,
               "gate_macro_f1": config.load()["acts"]["min_macro_f1"],
               "tagged_distribution": turns["act"].value_counts().to_dict()}
     storage.save_json(report, "act_tagger")

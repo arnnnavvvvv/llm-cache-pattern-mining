@@ -12,11 +12,11 @@ from gwcache import config, gold, storage
 GOLD_DIR = config.path("results") / "human_checks"
 
 
-# writes gold pairs and the two blind sheets (never overwriting filled ones)
+# writes gold pairs (every candidate of the judge-pick turns) and the two blind sheets, never overwriting filled ones
 def export():
-    labels, st, turns = storage.load("labels"), storage.load("label_queue"), storage.load("turns")
-    primary = labels[labels["judge"] == config.load()["judge"]["model"]]
-    pairs = gold.pick(primary, st)
+    st, turns, cands = storage.load("label_queue"), storage.load("turns"), storage.load("candidates")
+    pick = st[st["period"] == "train"]["turn_id"].head(config.load()["judge"]["pick_turns"])
+    pairs = cands[cands["turn_id"].isin(pick)][["turn_id", "cand_turn_id"]].reset_index(drop=True)
     pairs.to_csv(GOLD_DIR / "gold_pairs.csv", index=False)
     pairs[["turn_id"]].drop_duplicates().to_csv(GOLD_DIR / "gold_turns.csv", index=False)
     for rater, sheet in gold.sheets(pairs, turns).items():
@@ -31,13 +31,13 @@ def export():
 # agreement table: rater vs rater, each judge vs each rater and vs the rater consensus, judge vs judge
 def score():
     cfg = config.load()["judge"]
-    labels = storage.load("labels")
+    labels = pd.concat([storage.load("labels"), storage.load("judge_pick_labels")], ignore_index=True)
     a = gold.read_sheet(pd.read_csv(GOLD_DIR / "gold_sheet_rater_a.csv", encoding="utf-8-sig"))
     b = gold.read_sheet(pd.read_csv(GOLD_DIR / "gold_sheet_rater_b.csv", encoding="utf-8-sig"))
     both = a.index.intersection(b.index)
     consensus = a.loc[both][a.loc[both] == b.loc[both]]
     rows = [gold.agreement("rater_a vs rater_b", a, b)]
-    for model in [cfg["model"], cfg["second_model"]]:
+    for model in [cfg["model"], cfg["second_model"], cfg["third_model"]]:
         j = gold.judge_series(labels, model)
         rows += [gold.agreement(f"{model} vs rater_a", j, a), gold.agreement(f"{model} vs rater_b", j, b),
                  gold.agreement(f"{model} vs consensus", j, consensus)]

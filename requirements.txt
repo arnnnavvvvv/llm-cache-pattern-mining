@@ -15,3 +15,5 @@ pytest
 fastapi
 uvicorn
 httpx
+python-dotenv
+anthropic

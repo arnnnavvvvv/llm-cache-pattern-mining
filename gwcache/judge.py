@@ -49,15 +49,19 @@ def items_for(turn_ids: list[str], turns: pd.DataFrame, cands: pd.DataFrame) -> 
     return items
 
 
-# labels every candidate of the given turns with one judge model, returning long label rows
+# labels every candidate of the given turns with one judge model, sending batches in parallel
 def label(turn_ids: list[str], turns: pd.DataFrame, cands: pd.DataFrame, model: str, log=print) -> pd.DataFrame:
+    from concurrent.futures import ThreadPoolExecutor
+
     per = config.load()["judge"]["items_per_request"]
+    workers = config.load()["gateway"]["workers"] if model.startswith("claude") else 1
     client = Client()
     items = items_for(turn_ids, turns, cands)
+    batches = [items[i : i + per] for i in range(0, len(items), per)]
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        replies = list(pool.map(lambda b: client.json_call(model, JUDGE_PROMPT, render(b), log=log), batches))
     rows = []
-    for start in range(0, len(items), per):
-        batch = items[start : start + per]
-        reply = client.json_call(model, JUDGE_PROMPT, render(batch), log=log)
+    for batch, reply in zip(batches, replies):
         verdicts = {(int(it["id"]), int(c["c"])): bool(c["acceptable"])
                     for it in reply.get("items", []) for c in it.get("candidates", []) if "acceptable" in c}
         for i, item in enumerate(batch, start=1):
@@ -65,5 +69,5 @@ def label(turn_ids: list[str], turns: pd.DataFrame, cands: pd.DataFrame, model: 
                 if (i, c) in verdicts:
                     rows.append({"turn_id": item["turn_id"], "cand_turn_id": cand["cand_turn_id"],
                                  "acceptable": int(verdicts[(i, c)]), "judge": model})
-        log(f"{model}: labeled {min(start + per, len(items))}/{len(items)} turns")
+    log(f"{model}: labeled {len(items)} turns ({client.calls} new calls, {client.tokens} tokens)")
     return pd.DataFrame(rows, columns=["turn_id", "cand_turn_id", "acceptable", "judge"])

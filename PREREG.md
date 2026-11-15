@@ -61,4 +61,12 @@ P4 vs P3 isolates the contribution of patterns. P4+ vs P5 tests whether patterns
 
 ## Change log
 
-None yet.
+- **2026-11-16, judge model.** The primary judge moves from `openai/gpt-oss-120b` (Groq) to `claude-sonnet-5.5` (Anthropic models through an Anthropic-compatible gateway).
+  - **Reason:** the Groq free tier caps each model at about 200K tokens a day, enough for only a few hundred turns.
+  - **How it was chosen:** on 100 training-period turns (199 pairs), Haiku 5.5, Sonnet 5.5 and Opus 5.5 agreed with each other on 85-88% of pairs. Sonnet was picked on cost and quality.
+  - **Timing:** this was decided before any confirmation-period label existed.
+  - **Gold set:** those 199 pairs, labeled by all three models, become the human gold set, so each judge is validated against the raters.
+- **2026-11-16, dialogue acts.** The fast act tagger reached only 0.47 macro-F1 against 1,000 LLM seed labels, below the 0.70 gate.
+  - **Change:** every turn is now tagged directly by `claude-haiku-5.5`.
+  - **Service:** the fast classifier is retrained on those tags, for the live service only.
+  - **Timing:** this was decided before any pattern feature was computed.

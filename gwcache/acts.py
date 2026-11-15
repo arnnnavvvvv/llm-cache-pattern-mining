@@ -52,7 +52,7 @@ def seed_labels(turns: pd.DataFrame, prev: pd.Series, log=print) -> pd.DataFrame
     for start in range(0, len(sample), a["turns_per_request"]):
         batch = sample.iloc[start : start + a["turns_per_request"]]
         items = "\n\n".join(
-            f"### Item {i}\nPREVIOUS: {head_tail(prev.loc[idx], 200)}\nCURRENT: {head_tail(row.request, 300)}"
+            f"### Item {i}\nPREVIOUS: {head_tail(prev.loc[idx], 150)}\nCURRENT: {head_tail(row.request, 250)}"
             for i, (idx, row) in enumerate(batch.iterrows(), start=1)
         )
         reply = client.json_call(a["seed_model"], ACT_PROMPT, items, log=log)
@@ -60,6 +60,33 @@ def seed_labels(turns: pd.DataFrame, prev: pd.Series, log=print) -> pd.DataFrame
         out += [{"turn_id": row.turn_id, "act": got.get(i)} for i, row in enumerate(batch.itertuples(), start=1)]
         log(f"act seeds: {len(out)}/{len(sample)}")
     return pd.DataFrame(out).dropna()
+
+
+# tags every turn's act with the llm, batched and in parallel; turns the model skips come back as new_request
+def tag_all(turns: pd.DataFrame, prev: pd.Series, model: str, log=print) -> pd.Series:
+    from concurrent.futures import ThreadPoolExecutor
+
+    cfg = config.load()
+    per, labels = cfg["acts"]["turns_per_request"], cfg["acts"]["labels"]
+    client = Client()
+    idx = list(turns.index)
+    batches = [idx[i : i + per] for i in range(0, len(idx), per)]
+
+    # one request for one batch of turns
+    def run(batch):
+        text = "\n\n".join(f"### Item {k}\nPREVIOUS: {head_tail(prev.loc[j], 150)}\nCURRENT: {head_tail(turns.at[j, 'request'], 250)}"
+                            for k, j in enumerate(batch, start=1))
+        reply = client.json_call(model, ACT_PROMPT, text, log=log)
+        got = {int(x["id"]): x["act"] for x in reply.get("acts", []) if x.get("act") in labels}
+        return [got.get(k, "new_request") for k in range(1, len(batch) + 1)]
+
+    with ThreadPoolExecutor(max_workers=cfg["gateway"]["workers"]) as pool:
+        out = []
+        for n, tags in enumerate(pool.map(run, batches), start=1):
+            out += tags
+            if n % 100 == 0:
+                log(f"act tags: {n}/{len(batches)} batches, tokens so far {client.tokens}")
+    return pd.Series(out, index=idx)
 
 
 # numeric features for the classifier: request embedding, similarity to previous turn, position, length, cues

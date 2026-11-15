@@ -30,7 +30,9 @@ intents:
 acts:
   labels: [new_request, follow_up, continuation, correction, new_ask_same_material]
   seed_size: 1000
-  seed_model: openai/gpt-oss-20b
+  seed_model: qwen/qwen3.8-27b
+  # every turn is tagged by this model; the fast classifier is trained on those tags for the live service
+  tag_model: claude-haiku-5.5
   turns_per_request: 20
   human_check_size: 300
   min_macro_f1: 0.70
@@ -39,9 +41,18 @@ candidates:
   top_k: 3
   sim_floor: 0.70
 
+gateway:
+  # anthropic-compatible endpoint used for claude models (bearer auth, key in .env as AICREDITS_API_KEY)
+  base_url: https://api.aicredits.in
+  key_env: AICREDITS_API_KEY
+  workers: 8
+
 judge:
-  model: openai/gpt-oss-120b
-  second_model: openai/gpt-oss-20b
+  model: claude-sonnet-5.5
+  second_model: claude-opus-5.5
+  third_model: claude-haiku-5.5
+  # the turns all three judges labeled while picking the judge; their pairs are the human gold set
+  pick_turns: 100
   items_per_request: 4
   request_chars: 400
   answer_chars: 500

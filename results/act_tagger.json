@@ -1,0 +1,23 @@
+{
+  "seed_labels": 1000,
+  "seed_distribution": {
+    "new_request": 587,
+    "follow_up": 237,
+    "correction": 106,
+    "new_ask_same_material": 44,
+    "continuation": 26
+  },
+  "cv_macro_f1_vs_llm": 0.47002705487294916,
+  "human_check": {
+    "n": 0,
+    "macro_f1": null
+  },
+  "gate_macro_f1": 0.7,
+  "tagged_distribution": {
+    "new_request": 13489,
+    "follow_up": 8883,
+    "correction": 3657,
+    "new_ask_same_material": 2941,
+    "continuation": 1045
+  }
+}
