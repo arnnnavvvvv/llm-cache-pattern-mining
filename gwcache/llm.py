@@ -61,6 +61,22 @@ def _gateway_key() -> str:
     return key
 
 
+# raised when the model declines a request, so callers can split the batch and isolate the cause
+class Refusal(Exception):
+    pass
+
+
+# runs fn on a batch; on a refusal it retries each half, so only the items that trigger it are dropped (reply None)
+def call_splitting(batch: list, fn) -> list[tuple[list, dict | None]]:
+    try:
+        return [(batch, fn(batch))]
+    except Refusal:
+        if len(batch) == 1:
+            return [(batch, None)]
+        mid = len(batch) // 2
+        return call_splitting(batch[:mid], fn) + call_splitting(batch[mid:], fn)
+
+
 class Client:
     # builds provider clients lazily and keeps simple usage counters
     def __init__(self):
@@ -143,6 +159,12 @@ class Client:
                     messages=[{"role": "user", "content": user}], output_config={"effort": effort},
                 )
                 text = "".join(b.text for b in resp.content if b.type == "text")
+                if resp.stop_reason == "refusal":
+                    raise Refusal(model)
+                if resp.stop_reason == "max_tokens" and not text.strip():
+                    max_tokens *= 2
+                    log(f"{model} ran out of tokens before answering, retrying with {max_tokens}")
+                    continue
                 usage = {"input": resp.usage.input_tokens, "output": resp.usage.output_tokens}
                 return parse_json(text), usage, resp.model
             except anthropic.RateLimitError as err:

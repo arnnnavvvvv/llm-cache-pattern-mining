@@ -3,7 +3,7 @@ import pandas as pd
 
 from gwcache import config
 from gwcache.acts import head_tail
-from gwcache.llm import Client
+from gwcache.llm import Client, call_splitting
 
 JUDGE_PROMPT = """You audit a semantic cache in an LLM gateway. Each item has a NEW request, the REFERENCE answer \
 that was actually given to it, and one or more CANDIDATES: earlier requests with the answers given to them.
@@ -59,9 +59,15 @@ def label(turn_ids: list[str], turns: pd.DataFrame, cands: pd.DataFrame, model: 
     items = items_for(turn_ids, turns, cands)
     batches = [items[i : i + per] for i in range(0, len(items), per)]
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        replies = list(pool.map(lambda b: client.json_call(model, JUDGE_PROMPT, render(b), log=log), batches))
+        parts = [p for res in pool.map(lambda b: call_splitting(b, lambda x: client.json_call(model, JUDGE_PROMPT, render(x), log=log)), batches)
+                 for p in res]
+    refused = [item["turn_id"] for batch, reply in parts if reply is None for item in batch]
+    if refused:
+        log(f"{model}: refused {len(refused)} turns, left unlabeled")
     rows = []
-    for batch, reply in zip(batches, replies):
+    for batch, reply in parts:
+        if reply is None:
+            continue
         verdicts = {(int(it["id"]), int(c["c"])): bool(c["acceptable"])
                     for it in reply.get("items", []) for c in it.get("candidates", []) if "acceptable" in c}
         for i, item in enumerate(batch, start=1):

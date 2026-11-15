@@ -6,7 +6,7 @@ from sklearn.metrics import f1_score
 from sklearn.model_selection import GroupKFold, cross_val_predict
 
 from gwcache import config
-from gwcache.llm import Client
+from gwcache.llm import Client, call_splitting
 
 ACT_PROMPT = """You label the dialogue act of user turns in chatbot conversations. For each item you see the user's \
 PREVIOUS turn (may be empty) and the CURRENT turn. Pick exactly one act for the CURRENT turn:
@@ -72,20 +72,30 @@ def tag_all(turns: pd.DataFrame, prev: pd.Series, model: str, log=print) -> pd.S
     idx = list(turns.index)
     batches = [idx[i : i + per] for i in range(0, len(idx), per)]
 
-    # one request for one batch of turns
-    def run(batch):
+    # one request for one batch of turns, returning act tags in batch order
+    def ask(batch):
         text = "\n\n".join(f"### Item {k}\nPREVIOUS: {head_tail(prev.loc[j], 150)}\nCURRENT: {head_tail(turns.at[j, 'request'], 250)}"
-                            for k, j in enumerate(batch, start=1))
+                             for k, j in enumerate(batch, start=1))
         reply = client.json_call(model, ACT_PROMPT, text, log=log)
         got = {int(x["id"]): x["act"] for x in reply.get("acts", []) if x.get("act") in labels}
         return [got.get(k, "new_request") for k in range(1, len(batch) + 1)]
 
+    # a batch with refusals isolated; refused turns get the neutral new_request tag and are counted
+    def run(batch):
+        tags = []
+        for part, reply in call_splitting(batch, ask):
+            tags += reply if reply is not None else ["new_request"] * len(part)
+            refused[0] += 0 if reply is not None else len(part)
+        return tags
+
+    refused = [0]
     with ThreadPoolExecutor(max_workers=cfg["gateway"]["workers"]) as pool:
         out = []
         for n, tags in enumerate(pool.map(run, batches), start=1):
             out += tags
             if n % 100 == 0:
-                log(f"act tags: {n}/{len(batches)} batches, tokens so far {client.tokens}")
+                log(f"act tags: {n}/{len(batches)} batches, tokens so far {client.tokens}, refused turns {refused[0]}")
+    log(f"act tagging done, refused turns: {refused[0]}")
     return pd.Series(out, index=idx)
 
 

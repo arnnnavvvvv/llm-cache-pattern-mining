@@ -25,3 +25,20 @@ def test_cache_key_stable():
     a = llm.cache_key("m", "s", "u", {"t": 0})
     assert a == llm.cache_key("m", "s", "u", {"t": 0})
     assert a != llm.cache_key("m", "s", "u2", {"t": 0})
+
+
+# a refusal inside a batch is narrowed down to the single item that caused it
+def test_refusal_splitting_isolates_item():
+    def fn(batch):
+        if 3 in batch:
+            raise llm.Refusal("x")
+        return {"n": len(batch)}
+    parts = llm.call_splitting([1, 2, 3, 4, 5, 6, 7, 8], fn)
+    assert [p for p, r in parts if r is None] == [[3]]
+    assert sum(len(p) for p, _ in parts) == 8
+
+
+# json is recovered from fenced or chatty replies
+def test_parse_json_tolerates_fences():
+    assert llm.parse_json('```json\n{"a": 1}\n```') == {"a": 1}
+    assert llm.parse_json('Here you go: {"a": 2} done') == {"a": 2}
