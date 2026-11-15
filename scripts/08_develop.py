@@ -4,9 +4,24 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import joblib
+import numpy as np
 import pandas as pd
 
-from gwcache import config, evaluate, experiments, storage
+from gwcache import config, decision, evaluate, experiments, storage
+from gwcache.features import CATEGORICAL
+
+
+# fits p4 on train+dev labels and saves everything the live service needs in one file
+def save_bundle(pairs, labels, turns):
+    cols = experiments.FEATURE_SETS["P4_patterns"]
+    lab = evaluate.labeled_pairs(pairs, labels)
+    lab = lab[lab["turn_id"].map(turns.set_index("turn_id")["period"]).isin(["train", "dev"])]
+    work = config.path("work")
+    joblib.dump({"model": decision.fit_verifier(lab, cols), "cols": cols,
+                 "categories": {c: list(pairs[c].cat.categories) for c in CATEGORICAL},
+                 "centers": np.load(work / "intent_centers.npy"), "act_model": joblib.load(work / "act_model.joblib")},
+                work / "service_bundle.joblib")
 
 
 # replays every policy on dev with bootstrap cis, plus the k-fold spread diagnostic on train
@@ -22,6 +37,7 @@ def main():
     cv = evaluate.cv_diagnostic(pairs, labels, turns, experiments.FEATURE_SETS, ["train"])
     storage.save_result(cv, "dev_cv_folds")
     storage.save_result(evaluate.spread(cv), "dev_cv_spread")
+    save_bundle(pairs, labels, turns)
     pd.set_option("display.width", 220)
     print(res["summary"].to_string(index=False))
     print(res["comparisons"].to_string(index=False))
