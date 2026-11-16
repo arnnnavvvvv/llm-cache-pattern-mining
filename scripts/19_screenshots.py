@@ -18,6 +18,7 @@ SHOTS = [
     ("demo_operating_10", "?page=Operating%20point&target=10", None),
     ("demo_findings", "?page=Findings", None),
     ("demo_live", "?page=Live%20admission", ["Can you make some ASCII-art please?", "make it shorter", "Where can I use chatgpt 4 for free"]),
+    ("api_docs", "http://127.0.0.1:8077/docs", None),
 ]
 
 
@@ -40,6 +41,15 @@ def main():
         page = browser.new_page(viewport={"width": 1500, "height": 950}, device_scale_factor=1.5)
         for name, query, typed in SHOTS:
             if only and name not in only:
+                continue
+            if query.startswith("http"):
+                # the admission api's own docs page (python scripts/12_service.py serve)
+                page.goto(query)
+                page.wait_for_selector(".opblock", timeout=60000)
+                page.click("text=/admit")
+                time.sleep(2)
+                page.screenshot(path=str(out / f"{name}.png"), full_page=True)
+                print("saved", name)
                 continue
             page.goto(BASE + query)
             settle(page, 3.0)

@@ -1,0 +1,7 @@
+model,role,calls,input_tokens,output_tokens,provider,cost_inr
+claude-haiku-5.5,act tagging + judge candidate,1537,3218071,598435,prepaid gateway,61.48
+claude-opus-5.5,judge candidate,25,86171,7465,prepaid gateway,48.89
+claude-sonnet-5.5,reference judge (all labels),2839,9411681,513470,prepaid gateway,2371.25
+openai/gpt-oss-120b,early judge tests,2,0,0,free tier (usage not metered),0.0
+openai/gpt-oss-20b,early judge tests,3,0,0,free tier (usage not metered),0.0
+qwen/qwen3.8-27b,act seed labels,51,0,0,free tier (usage not metered),0.0

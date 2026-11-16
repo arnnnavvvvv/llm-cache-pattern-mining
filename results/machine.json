@@ -1,0 +1,10 @@
+{
+  "cpu": "13th Gen Intel(R) Core(TM) i7-13700H",
+  "logical_cores": 20,
+  "ram_gb": 15.7,
+  "gpu": "none used",
+  "os": "Windows 11 (build 10.0.26200)",
+  "python": "3.11.9",
+  "work_tables_mb": 85.2,
+  "turns": 30015
+}
