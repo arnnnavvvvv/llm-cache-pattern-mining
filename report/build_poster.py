@@ -41,7 +41,7 @@ def main():
     text(s, M + 5.7, 0.55, W - 2 * M - 5.7, 2.4,
          "Pattern-Mining-Driven Cache Admission and Routing for Multi-Provider LLM Gateways", size=48, color=WHITE,
          bold=True, font=HEAD)
-    text(s, M, 3.0, W - 2 * M, 0.6, "Arnav Gupta · [Member 2] · [Member 3] · [Member 4]   |   Guide: Dr. Sandipan Maiti   |   "
+    text(s, M, 3.0, W - 2 * M, 0.6, "Arnav Gupta · Saugata Kumar Jana · Avishkar Maitra · Arpita Suresh Kulkarni   |   Guide: Dr. Sandipan Maiti   |   "
                                      "School of Computer Science and Engineering, VIT-AP University", size=24, color=TEAL_LIGHT)
 
     y = 5.0

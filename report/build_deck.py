@@ -18,7 +18,7 @@ RES = ROOT / "results"
 FIG, REP, DEMO = RES / "figures", RES / "figures" / "report", RES / "figures" / "demo"
 OUT = ROOT / "report" / "Review3_Presentation.pptx"
 TITLE = "Pattern-Mining-Driven Cache Admission and Routing for Multi-Provider LLM Gateways"
-TEAM = "Arnav Gupta · [Member 2] · [Member 3] · [Member 4]"
+TEAM = "Arnav Gupta · Saugata Kumar Jana · Avishkar Maitra · Arpita Suresh Kulkarni"
 
 
 # new content slide with the shared title position and a small page footer

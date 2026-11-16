@@ -21,8 +21,8 @@ DEMO = FIG / "demo"
 OUT = ROOT / "report" / "Capstone_Report.docx"
 TITLE = "Pattern-Mining-Driven Cache Admission and Routing for Multi-Provider LLM Gateways"
 REPO = "https://github.com/arnnnavvvvv/llm-cache-pattern-mining"
-MEMBERS = [("ARNAV GUPTA", "[REG. NO.]"), ("[MEMBER 2 NAME]", "[REG. NO.]"), ("[MEMBER 3 NAME]", "[REG. NO.]"),
-           ("[MEMBER 4 NAME]", "[REG. NO.]")]
+MEMBERS = [("ARNAV GUPTA", "[REG. NO.]"), ("SAUGATA KUMAR JANA", "[REG. NO.]"), ("AVISHKAR MAITRA", "[REG. NO.]"),
+           ("ARPITA SURESH KULKARNI", "[REG. NO.]")]
 POLICY = {"P1_fixed": "P1 fixed threshold", "P2_per_intent": "P2 per-intent thresholds", "P3_per_query": "P3 per-turn verifier",
           "P5_context": "P5 + context embedding", "P4_patterns": "P4 + mined patterns (proposed)",
           "P4plus_context_patterns": "P4+ context and patterns"}
