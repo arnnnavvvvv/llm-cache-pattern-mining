@@ -54,6 +54,34 @@ Every Hugging Face cache points at `D:/Capstone/.cache`.
 | 11 | `11_trajectory.py` | Exploratory trajectory fast-tracking |
 | 12 | `12_service.py bench` / `12_service.py serve` | Latency benchmark, or run the live API |
 | 13 | `13_figures.py` | Figures and `results/REGISTER.md` |
+| 14 | `14_analysis.py` | Wrong reuse by act and similarity; near-duplicate behavior split |
+| 15 | `15_paper.py` | Paper numbers and tables under `paper/` |
+| 16 | `16_exploratory.py` | Descriptive per-act breakdown for every policy; per-turn decisions for the demo |
+| 17 | `17_report_figures.py` | Report figures under `results/figures/report/` |
+| 18 | `18_diagrams.py` | Block diagram, pipeline and decision-flow diagrams |
+| 19 | `19_screenshots.py` | Demo and API screenshots (needs the demo and the API running; not part of `run_all`) |
+| 20 | `20_report_tables.py` | Model usage and cost from the response cache, tool versions, machine details |
+
+## Report, slides and poster
+
+| Command | Output |
+|---|---|
+| `python report/build_report.py` then `python report/finalize.py` | `report/Capstone_Report.docx` and `.pdf` in the VIT-AP thesis format (finalize uses Word to fill the contents and lists) |
+| `python report/build_deck.py` | `report/Review3_Presentation.pptx` |
+| `python report/build_poster.py` | `report/Poster_A1.pptx` |
+| `python report/export_slides.py <pptx> <folder>` | slide images and a PDF, through PowerPoint |
+
+The demo video script is in `report/DEMO_VIDEO_SCRIPT.md`.
+
+## Demo
+
+`streamlit run demo/app.py` opens the replay demo at http://localhost:8501. Pages:
+
+- **Replay:** the confirmation period through P1, P3 and P4 side by side.
+- **Inspect a decision:** why one request was served or blocked.
+- **Operating point:** hit rate at any wrong-reuse budget.
+- **Findings:** the headline result and the negative ones.
+- **Live admission:** typed requests through the running engine.
 
 All LLM calls are cached on disk, so re-runs are free and interrupted jobs resume where they stopped.
 

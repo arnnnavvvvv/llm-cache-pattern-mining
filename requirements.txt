@@ -17,3 +17,7 @@ uvicorn
 httpx
 python-dotenv
 anthropic
+streamlit
+python-docx
+python-pptx
+playwright

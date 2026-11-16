@@ -41,6 +41,7 @@ Below 0.90 similarity almost every reuse is wrong whatever the act. Above it, be
   - on later turns: 11.4% → 10.2%.
 
   Patterns change *which* requests are served, not how many.
+- **All policies, per act** (`exploratory_mechanism_all.csv`, descriptive, added after the run from the same frozen models): at ≤10% wrong reuse, P3 and P5 each served 3 corrections and got 2 wrong; P4 and P4+ served 1 and got it right. On follow-ups P5 was wrong on 3 of 10, P3 on 2 of 13 and P4 on 2 of 15. Counts are small.
 - **Placebos and ablations** (`confirm_controls_*.csv`): none differ from P3.
 - **Positive control** (`positive_control.csv`): 24.0% vs 5.7%. The pipeline detects pattern effects when they exist.
 - **CV spread** (`confirm_cv_spread.csv`): F1 0.63–0.64 for every learned policy, spread ≤ 0.075.
@@ -74,6 +75,13 @@ The admission API decides in **43 ms (median) / 79 ms (p95)** with 3,000 cached 
 - **Gold sheets** (`results/human_checks/gold_sheet_rater_{a,b}.csv`): two raters. Then run `python scripts/06_gold.py score`.
 - **Act sheet** (`act_sheet.csv`): one rater. Re-running step 3 scores the tagger against it.
 - **Satisfaction sheet** (`satisfaction_sheet.csv`): one rater, to validate the trajectory proxy.
+
+## Report, deck, poster and demo
+
+- **Report:** `report/Capstone_Report.docx` (and `.pdf`), 54 pages in the VIT-AP thesis format, built by `report/build_report.py`. Names and registration numbers of members 2–4, the amount actually billed by the gateway, and biodata are placeholders.
+- **Slides and poster:** `report/Review3_Presentation.pptx` (18 slides) and `report/Poster_A1.pptx`.
+- **Demo:** `streamlit run demo/app.py`; screenshots in `results/figures/demo/`.
+- **Model usage** (`llm_usage_cost.csv`): ₹2,481.62 at the gateway's listed rates, from logged token counts.
 
 ## Paper
 
