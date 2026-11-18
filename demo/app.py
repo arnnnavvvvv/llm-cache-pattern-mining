@@ -22,8 +22,8 @@ PAGES = ["Replay", "Inspect a decision", "Operating point", "Findings", "Live ad
 st.set_page_config(page_title="Behavior-aware cache admission", layout="wide")
 
 
-# decision table, operating points, turn texts and judge labels, loaded once
-@st.cache_data
+# decision table, operating points, turn texts and judge labels, loaded once and shared by every session
+@st.cache_resource
 def load():
     table = storage.load("demo_decisions")
     turns = storage.load("turns")
@@ -76,7 +76,11 @@ def page_replay(table, points, n_confirm):
     qp = st.query_params
     k0 = int(qp.get("step", len(table) // 3))
     c1, c2 = st.columns([4, 1])
-    k = c1.slider("Requests replayed", 1, len(table), min(k0, len(table)), key="step")
+    if "next_step" in st.session_state:
+        st.session_state["step"] = st.session_state.pop("next_step")
+    elif "step" not in st.session_state:
+        st.session_state["step"] = min(k0, len(table))
+    k = c1.slider("Requests replayed", 1, len(table), key="step")
     play = c2.toggle("Play", value=False)
     cols = st.columns(3)
     for col, p in zip(cols, DEMO):
@@ -107,7 +111,7 @@ def page_replay(table, points, n_confirm):
                    + " — the same figures as the confirmation table.")
     if play and k < len(table):
         time.sleep(0.15)
-        st.session_state["step"] = min(k + 15, len(table))
+        st.session_state["next_step"] = min(k + 15, len(table))
         st.rerun()
 
 
