@@ -28,6 +28,7 @@ STEPS = [
     ["report/build_report.py"],
     ["report/build_deck.py"],
     ["report/build_poster.py"],
+    ["report/build_final_review.py"],
 ]
 
 

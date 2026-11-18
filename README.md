@@ -69,6 +69,7 @@ Every Hugging Face cache points at `D:/Capstone/.cache`.
 | `python report/build_report.py` then `python report/finalize.py` | `report/Capstone_Report.docx` and `.pdf` in the VIT-AP thesis format (finalize uses Word to fill the contents and lists) |
 | `python report/build_deck.py` | `report/Review3_Presentation.pptx` |
 | `python report/build_poster.py` | `report/Poster_A1.pptx` |
+| `python report/build_final_review.py` | `report/Final_Review_Presentation.pptx` on the university template (`report/assets/final_review_template.pptx`) |
 | `python report/export_slides.py <pptx> <folder>` | slide images and a PDF, through PowerPoint |
 
 The demo video script is in `report/DEMO_VIDEO_SCRIPT.md`.
