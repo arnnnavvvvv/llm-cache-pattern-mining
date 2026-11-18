@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "report"))
 
 import pandas as pd
 from PIL import Image
@@ -749,8 +750,13 @@ def main():
     objectives_met(prs.slides[28])
     summary(prs, 29)
     bibliography(prs, 30)
-    prs.save(OUT)
-    print("saved", OUT, len(prs.slides), "slides")
+    from speaker_notes import NOTES
+    assert len(NOTES) == len(prs.slides)
+    for slide, n in zip(prs.slides, NOTES):
+        notes(slide, n["say"])
+    out = Path(sys.argv[1]) if len(sys.argv) > 1 else OUT
+    prs.save(out)
+    print("saved", out, len(prs.slides), "slides")
 
 
 if __name__ == "__main__":
