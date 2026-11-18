@@ -61,6 +61,7 @@ Every Hugging Face cache points at `D:/Capstone/.cache`.
 | 18 | `18_diagrams.py` | Block diagram, pipeline and decision-flow diagrams |
 | 19 | `19_screenshots.py` | Demo and API screenshots (needs the demo and the API running; not part of `run_all`) |
 | 20 | `20_report_tables.py` | Model usage and cost from the response cache, tool versions, machine details |
+| 21 | `21_savings.py` | Projected monthly and yearly savings over a fixed-threshold cache at 1M/10M/100M requests a month |
 
 ## Report, slides and poster
 

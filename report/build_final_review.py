@@ -322,12 +322,12 @@ def background(prs):
 
 # proposed solution: architecture, workflow, modules, methods, tools
 def solution(prs):
-    s = prs.slides[7]
+    s = prs.slides[8]
     heading(s, "Proposed Solution", "System Architecture / Block Diagram")
     picture(s, REP / "block_diagram.png", LEFT, 1.05, RIGHT - LEFT, 3.95)
     notes(s, "Top: online path per request. Bottom: offline loop re-mined daily from past traffic only.")
 
-    s = prs.slides[8]
+    s = prs.slides[9]
     heading(s, "Proposed Solution", "Workflow: one request through the admission engine")
     picture(s, REP / "decision_flow.png", LEFT, 1.05, 3.9, 3.95)
     steps = [("Retrieve", "top-3 earlier requests by cosine similarity (FAISS), floor 0.70"),
@@ -340,7 +340,7 @@ def solution(prs):
         badge(s, 4.45, y, i + 1)
         text(s, 4.85, y - 0.04, 4.85, 0.75, [[(h + ": ", {"bold": True, "color": MAROON}), (b, {})]], size=12)
 
-    s = prs.slides[9]
+    s = prs.slides[10]
     heading(s, "Proposed Solution", "Key Components / Features & Modules")
     mods = [("Data ingest & replay", "WildChat → gateway-style logs; time-ordered replay with a separate cache per policy"),
             ("Behavior tagger", "5 dialogue acts and 20 intents for every turn"),
@@ -355,7 +355,7 @@ def solution(prs):
         text(s, x + 0.55, y + 0.12, 2.35, 0.45, h, size=13.5, bold=True, color=MAROON, font=HEAD)
         text(s, x + 0.15, y + 0.62, 2.75, 1.1, b, size=11.5)
 
-    s = prs.slides[10]
+    s = prs.slides[11]
     heading(s, "Proposed Solution", "Algorithms and Methods Used")
     table(s, LEFT, 1.12, 5.3, ["Method", "Used for"], [
         ["Sentence-BERT (MiniLM-L6-v2)", "request embeddings"], ["FAISS exact inner product", "candidate retrieval"],
@@ -374,7 +374,7 @@ def solution(prs):
         [("r = (state, act) of request and of cached entry; m = 20; T = 30 days", {"size": 10.5, "color": MUTED})]],
          size=12.5, after=11)
 
-    s = prs.slides[11]
+    s = prs.slides[12]
     heading(s, "Proposed Solution", "Technologies, Frameworks and Tools Used")
     groups = [("Data & ML", "Python 3.11 · pandas · NumPy · PyArrow · Hugging Face datasets · scikit-learn · LightGBM"),
               ("Embeddings & search", "sentence-transformers · PyTorch (CPU) · FAISS"),
@@ -391,7 +391,7 @@ def solution(prs):
 
 # implementation: dataset, labels, parameters
 def implementation(prs):
-    s = prs.slides[12]
+    s = prs.slides[14]
     heading(s, "Implementation and Results", "Dataset Descriptions / Input – Output Descriptions")
     ds = pd.read_csv(RES / "dataset_stats.csv").set_index("period")
     table(s, LEFT, 1.12, 5.2, ["Period", "Turns", "Sessions", "Users", "Dates (2023)"],
@@ -412,7 +412,7 @@ def implementation(prs):
                                    "cached answer, matched entry, score",
                                    "dialogue act, intent, latency"], size=11.5, after=3)
 
-    s = prs.slides[13]
+    s = prs.slides[15]
     heading(s, "Implementation and Results", "Ground Truth: judged reuse labels")
     text(s, LEFT, 1.12, 3.9, 3.9, [
         "Candidates: top-3 earlier turns with similarity ≥ 0.70 → 12,124 turns, 25,345 pairs",
@@ -422,7 +422,7 @@ def implementation(prs):
         "Two-rater human gold set prepared for judge validation"], size=11.5, bullet=True, after=7)
     picture(s, REP / "label_coverage.png", 4.3, 1.1, 5.4, 3.9)
 
-    s = prs.slides[14]
+    s = prs.slides[16]
     heading(s, "Implementation and Results", "Parameters Descriptions")
     rows = [["Similarity floor / candidates", "0.70 / top 3"], ["Intent clusters (k-means)", "20"], ["Dialogue acts", "5"],
             ["FP-Growth min support", "0.02"], ["PrefixSpan min support / max length", "0.01 / 3"],
@@ -439,7 +439,7 @@ def implementation(prs):
 def outcomes(prs):
     summ = pd.read_csv(RES / "confirm_summary.csv").set_index("policy")
     lat = json.loads((RES / "service_latency.json").read_text())
-    base = 15
+    base = 17
     s = prs.slides[base]
     heading(s, "Implementation and Results", "Outcome 1: conversation behavior decides safe reuse")
     picture(s, FIG / "wrong_reuse_by_act.png", LEFT, 1.05, 6.1, 3.5)
@@ -530,6 +530,154 @@ def outcomes(prs):
     text(s, 5.1, 4.7, 4.6, 0.3, "Choose an error budget, read hit rates off real curves", size=10.5, color=MUTED)
 
 
+# indian-style money and count formatting (lakh, crore)
+def inr(v, money=True):
+    sign = "₹" if money else ""
+    if v >= 1e7:
+        return f"{sign}{v / 1e7:.2f} crore"
+    if v >= 1e5:
+        return f"{sign}{v / 1e5:.2f} lakh"
+    return f"{sign}{v:,.0f}"
+
+
+# adds the new sections to the template's outline, copying the formatting of existing lines
+def outline(s):
+    body = shape(s, "TextShape 2").text_frame
+    paras = list(body.paragraphs)
+
+    def find(label):
+        return next(p for p in paras if "".join(r.text for r in p.runs).strip().startswith(label))
+
+    def insert_after(anchor_el, like, label):
+        el = copy.deepcopy(like._p)
+        anchor_el.addnext(el)
+        runs = el.findall(qn("a:r"))
+        runs[0].find(qn("a:t")).text = label
+        for r in runs[1:]:
+            el.remove(r)
+        return el
+
+    sub = find("Project Overview")
+    insert_after(find("Improvements Over")._p, sub, "Novel Contributions")
+    insert_after(find("Algorithms and Methods")._p, sub, "Standards Followed")
+    added = insert_after(find("Implementation and Results")._p, sub, "Dataset, Parameters & Experimental Outcomes")
+    insert_after(added, sub, "Real-World Applications & Projected Savings")
+    summ = find("Summary")
+    summ.runs[0].text = "Summary (Objectives Met, Findings, Limitations, Future Directions)"
+    for r in summ.runs[1:]:
+        r.text = ""
+    for p in body.paragraphs:
+        for r in p.runs:
+            if r.font.size:
+                r.font.size = Pt(r.font.size.pt - 2.5)
+
+
+# novelty: the four contributions this work adds
+def novelty(s):
+    heading(s, "Background & Related Work", "Novel Contributions of this Work")
+    items = [("New empirical finding", "First measurement on real traffic that reuse safety is governed by dialogue behavior: "
+                                       "near-duplicates wrong 56.3%; 75.7% vs 37.1% by turn type"),
+             ("Behavioral states for caching", "Mined act sequences place both the request and the cached entry in a "
+                                               "behavioral state, re-mined daily from past traffic only"),
+             ("Association-rule reuse prior", "Class association rules over state pairs feed an expected-benefit admission "
+                                              "rule: accurate and explainable"),
+             ("Fair evaluation protocol", "Per-policy stateful replay, matched error rates, reference-based judge, "
+                                          "pre-registration and a single frozen test")]
+    for i, (h, b) in enumerate(items):
+        x, y = LEFT + (i % 2) * 4.75, 1.12 + (i // 2) * 1.62
+        card(s, x, y, 4.6, 1.48)
+        badge(s, x + 0.15, y + 0.14, i + 1)
+        text(s, x + 0.55, y + 0.08, 3.95, 0.42, h, size=14, bold=True, color=MAROON, font=HEAD)
+        text(s, x + 0.15, y + 0.55, 4.35, 0.92, b, size=11.5)
+    card(s, LEFT, 4.42, RIGHT - LEFT, 0.55, fill=RGBColor(0xEA, 0xF3, 0xF6))
+    text(s, LEFT + 0.15, 4.44, RIGHT - LEFT - 0.3, 0.5, [[("To our knowledge, ", {"italic": True}),
+         ("the first semantic-cache admission method conditioned on mined behavioral patterns of both the request and the "
+          "cached entry.", {"bold": True, "color": MAROON})]], size=12, anchor=MSO_ANCHOR.MIDDLE)
+    notes(s, "Novelty in one line: we mine how conversations behave across all traffic and use it to decide reuse.")
+
+
+# standards and engineering practices followed
+def standards(s):
+    heading(s, "Proposed Solution", "Standards Followed")
+    table(s, LEFT, 1.12, 5.6, ["Standard", "Where it is applied"], [
+        ["HTTP semantics, RFC 9110 (REST)", "admission API /admit, /record, /health"],
+        ["JSON, RFC 8259", "API payloads, model replies, results"],
+        ["OpenAPI Specification 3.1", "machine-readable API docs at /docs"],
+        ["TLS 1.3, RFC 8446 (HTTPS)", "all calls to model providers"],
+        ["ISO 8601 (UTC)", "timestamps and the time-based split"],
+        ["Apache Parquet", "columnar storage of all tables"],
+        ["PEP 8", "Python code style"],
+        ["IEEE citation style", "report, paper and slides"]], [2.9, 2.7], size=10.5)
+    card(s, 6.1, 1.12, 3.6, 3.85)
+    text(s, 6.25, 1.18, 3.3, 0.4, "Engineering & research practice", size=13.5, bold=True, color=MAROON, font=HEAD)
+    text(s, 6.25, 1.65, 3.35, 3.3, ["Version control with Git; results tied to a release tag",
+                                    "19 automated tests, including no-future-data checks",
+                                    "Pre-registered claims, single frozen test run",
+                                    "Every figure regenerated from data by one script",
+                                    "Public, anonymised research data; toxic chats excluded; API keys kept out of code"],
+         size=11, bullet=True, after=6)
+
+
+# applications: where the system is useful, and what it saves at scale
+def applications(s1, s2):
+    heading(s1, "Implementation and Results", "Real-World Applications")
+    uses = [("Enterprise LLM gateways", "Admission layer before every provider call: fewer paid calls, same answer quality"),
+            ("Customer-support chatbots", "Repeated FAQs answered from cache; follow-ups like “shorten that” always go to the model"),
+            ("Coding & writing assistants", "Blocks reuse during refinement loops, where wrong reuse is most common"),
+            ("Education & tutoring bots", "Many students ask the same fresh questions; cached explanations served instantly"),
+            ("Guardrail for existing caches", "Drop-in rule for any semantic cache: never reuse for follow-ups, corrections, continuations"),
+            ("Auditing AI caching", "Readable mined rules and the replay protocol let teams audit and compare cache vendors")]
+    for i, (h, b) in enumerate(uses):
+        x, y = LEFT + (i % 3) * 3.15, 1.12 + (i // 3) * 1.68
+        card(s1, x, y, 3.0, 1.55)
+        text(s1, x + 0.15, y + 0.08, 2.75, 0.42, h, size=13, bold=True, color=MAROON, font=HEAD)
+        text(s1, x + 0.15, y + 0.52, 2.75, 1.0, b, size=11)
+    text(s1, LEFT, 4.5, RIGHT - LEFT, 0.45, [[("Integration: ", {"bold": True, "color": MAROON}),
+         ("two HTTP calls: POST /admit before forwarding a request, POST /record after the model answers; runs on a CPU.", {})]],
+         size=12)
+
+    sv = pd.read_csv(RES / "savings_projection.csv")
+    prem = sv[(sv["tier"].str.startswith("premium")) & (sv["wrong_reuse_level"] == 10)].set_index("requests_per_month")
+    bud = sv[(sv["tier"].str.startswith("budget")) & (sv["wrong_reuse_level"] == 10)].set_index("requests_per_month")
+    heading(s2, "Implementation and Results", "Application: projected savings vs industry-standard caching")
+    names = {1_000_000: "Startup · 1M requests/month", 10_000_000: "Mid-size · 10M requests/month",
+             100_000_000: "Enterprise · 100M requests/month"}
+    rows = [[names[n], inr(prem.loc[n, "calls_avoided_month"], money=False), inr(prem.loc[n, "saving_inr_month"]),
+             inr(prem.loc[n, "saving_inr_year"]), inr(bud.loc[n, "saving_inr_year"])] for n in names]
+    table(s2, LEFT, 1.12, 6.2, ["User scale", "Extra calls avoided / month", "Premium model / month",
+                                "Premium model / year", "Budget model / year"], rows, [2.1, 1.1, 1.0, 1.0, 1.0], size=10)
+    big = prem.loc[100_000_000, "saving_inr_year"]
+    stat(s2, 6.75, 1.1, 2.95, inr(big), "saved per year at 100M requests/month on a premium model", color=GOOD, size=26)
+    stat(s2, 6.75, 2.45, 2.95, "44,712 vs 187", "model calls avoided per million requests: ours vs a standard semantic "
+                                                "cache, at the same ≤10% error", color=MAROON, size=20)
+    text(s2, LEFT, 2.65, 6.2, 1.2, [
+        "Saving = (our hit rate − standard cache hit rate) × requests × cost per call",
+        f"Cost per call ₹{prem['cost_per_call_inr'].iloc[0]:.2f} (premium) / ₹{bud['cost_per_call_inr'].iloc[0]:.3f} (budget)"],
+         size=11.5, bullet=True, after=5)
+    text(s2, LEFT, 4.05, RIGHT - LEFT, 0.95, "Assumptions: hit rates measured on the held-out week (4.49% vs 0.02% at ≤10% wrong "
+         "answers); cost per call = gateway list price × dataset average of ≈140 request + ≈339 answer tokens, conversation "
+         "history excluded, so savings are conservative. At a stricter ≤5% error level savings are about one quarter.",
+         size=9.5, color=MUTED)
+    notes(s2, "All inputs are measured: hit rates from the confirmation run, prices from the gateway we used, token counts "
+              "from the dataset. Real chat calls also send conversation history, so true per-call cost and savings are higher.")
+
+
+# objectives from the introduction, each checked against the evidence
+def objectives_met(s):
+    body = shape(s, "TextShape 2")
+    body._element.getparent().remove(body._element)
+    text(s, LEFT, 0.62, 6, 0.42, [[("▪ ", {"color": TEAL, "bold": True}), ("Objectives Met", {"bold": True})]], size=17)
+    sv = pd.read_csv(RES / "savings_projection.csv")
+    year = sv[(sv["tier"].str.startswith("premium")) & (sv["wrong_reuse_level"] == 10)
+              & (sv["requests_per_month"] == 100_000_000)]["saving_inr_year"].iloc[0]
+    rows = [["Mine behavioral patterns from gateway traffic", "✓ Achieved", "FP-Growth + PrefixSpan re-mined daily; 82 behavioral rules"],
+            ["Build a behavior-aware admission engine", "✓ Achieved", "~240× more requests served than a standard cache at ≤10% error"],
+            ["Make reuse safer on context-dependent turns", "✓ Achieved", "wrong reuse on corrections 66.7% → 0%"],
+            ["Evaluate rigorously on real traffic", "✓ Achieved", "30,015 real turns, 10,776 judged, pre-registered single frozen test"],
+            ["Deliver a deployable service and demo", "✓ Achieved", "REST API at 43 ms per decision; 5-page interactive demo"],
+            ["Show real-world value", "✓ Achieved", f"≈{inr(year)} per year saved at enterprise scale (100M requests/month)"]]
+    table(s, LEFT, 1.15, RIGHT - LEFT, ["Objective", "Status", "Evidence"], rows, [3.4, 1.2, 4.8], size=11)
+
 # summary slide: findings, limitations, future directions
 def summary(prs, index):
     s = prs.slides[index]
@@ -539,7 +687,8 @@ def summary(prs, index):
         "Behavior, not similarity, decides whether a cached LLM answer is safe to reuse",
         "Behavior-aware admission serves ~240× more requests than a standard semantic cache at equal error",
         "Mined patterns remove wrong reuse on corrections and yield readable rules",
-        "Deployable: 43 ms decisions through a REST API"]),
+        "Deployable: 43 ms decisions through a REST API",
+        "Projected saving up to ₹1.95 crore a year at 100M requests/month"]),
         ("Limitations", TEAL, [
             "One public dataset over two weeks",
             "Labels from an LLM judge (3 models agree 85–88%); human rating in progress",
@@ -552,7 +701,7 @@ def summary(prs, index):
         x = LEFT + i * 3.15
         card(s, x, 0.85, 3.0, 4.1)
         text(s, x + 0.15, 0.92, 2.7, 0.4, h, size=15, bold=True, color=c, font=HEAD)
-        text(s, x + 0.15, 1.45, 2.75, 3.45, items, size=13, bullet=True, after=10)
+        text(s, x + 0.15, 1.4, 2.75, 3.5, items, size=12, bullet=True, after=7)
 
 
 # bibliography slide
@@ -579,19 +728,27 @@ def bibliography(prs, index):
 def main():
     prs = Presentation(str(TEMPLATE))
     # copies are made from the untouched template slides first, from the back so indices stay valid
-    for _ in range(8):
+    duplicate(prs, 13)
+    for _ in range(10):
         duplicate(prs, 12)
     duplicate(prs, 10)
     duplicate(prs, 9)
+    duplicate(prs, 9)
     duplicate(prs, 7)
+    duplicate(prs, 6)
     title_slide(prs.slides[0])
+    outline(prs.slides[1])
     introduction(prs)
     background(prs)
+    novelty(prs.slides[7])
     solution(prs)
+    standards(prs.slides[13])
     implementation(prs)
     outcomes(prs)
-    summary(prs, 24)
-    bibliography(prs, 25)
+    applications(prs.slides[26], prs.slides[27])
+    objectives_met(prs.slides[28])
+    summary(prs, 29)
+    bibliography(prs, 30)
     prs.save(OUT)
     print("saved", OUT, len(prs.slides), "slides")
 

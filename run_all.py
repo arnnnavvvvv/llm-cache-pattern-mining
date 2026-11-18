@@ -25,6 +25,7 @@ STEPS = [
     ["scripts/17_report_figures.py"],
     ["scripts/18_diagrams.py"],
     ["scripts/20_report_tables.py"],
+    ["scripts/21_savings.py"],
     ["report/build_report.py"],
     ["report/build_deck.py"],
     ["report/build_poster.py"],
