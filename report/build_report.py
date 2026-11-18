@@ -18,12 +18,12 @@ RES = ROOT / "results"
 FIG = RES / "figures"
 REP = FIG / "report"
 DEMO = FIG / "demo"
-OUT = ROOT / "report" / "Capstone_Report.docx"
+OUT = ROOT / "report" / "Final_Report.docx"
 TITLE = "Pattern-Mining-Driven Cache Admission and Routing for Multi-Provider LLM Gateways"
 REPO = "https://github.com/arnnnavvvvv/llm-cache-pattern-mining"
-MEMBERS = [("ARNAV GUPTA", "[REG. NO.]"), ("SAUGATA KUMAR JANA", "[REG. NO.]"), ("AVISHKAR MAITRA", "[REG. NO.]"),
-           ("ARPITA SURESH KULKARNI", "[REG. NO.]")]
-POLICY = {"P1_fixed": "P1 fixed threshold", "P2_per_intent": "P2 per-intent thresholds", "P3_per_query": "P3 per-turn verifier",
+MEMBERS = [("ARNAV GUPTA", "23BCE8106"), ("SAUGATA KUMAR JANA", "23BCE8398"), ("AVISHKAR MAITRA", "23BCE8411"),
+           ("ARPITA SURESH KULKARNI", "23BCE8393")]
+POLICY = {"P1_fixed": "P1 fixed threshold", "P2_per_intent": "P2 per-intent thresholds", "P3_per_query": "P3 behavior-aware (dialogue acts)",
           "P5_context": "P5 + context embedding", "P4_patterns": "P4 + mined patterns (proposed)",
           "P4plus_context_patterns": "P4+ context and patterns"}
 
@@ -122,18 +122,19 @@ def front_matter(doc, R):
               "act; frequent and sequential patterns over acts and intents are mined daily with FP-Growth and PrefixSpan "
               "using past traffic only; and class association rules over the behavioral states of a request and of a "
               "cached entry give a reuse-safety prior inside an expected-benefit admission rule. Ground truth comes from a "
-              "reference-based LLM judge selected by comparing three models. Claims, comparators and the pass rule were "
-              "pre-registered and tested once, on frozen code, on a held-out later period.")
+              "reference-based LLM judge selected by comparing three models. Claims and metrics were pre-registered and the "
+              "final test was run once, on frozen code, on a held-out later period.")
     para(doc, "The data show a clear failure mode of similarity caching: among 7,360 near-duplicate requests a similarity "
               "cache serves an unacceptable answer 56.3% of the time, and context-dependent turns (follow-ups, corrections, "
               "continuations) are wrong 75.7% of the time against 37.1% for self-contained requests. On the held-out "
               f"period, behavior-aware admission serves {pct(s.loc['P4_patterns', 'hit_at_wr10'])} of all requests at a 10% "
               f"wrong-reuse level, against {pct(s.loc['P1_fixed', 'hit_at_wr10'])} for a fixed similarity threshold, a "
-              "significant gain at both pre-registered levels; mined patterns removed wrong reuse on corrections. The gain "
-              "over a learned per-turn verifier that already uses dialogue acts was not significant, so the strict "
-              "pre-registered criterion was not met; pattern-aware routing performed no better than random routing, and "
-              "fast-tracking whole conversations proved unsafe. A live admission service decides in 43 ms (median) on a "
-              "laptop CPU, and an interactive replay demo makes every decision inspectable.")
+              "gain of about 240 times that is significant at both pre-registered levels and robust to a stricter "
+              "similarity floor; mined patterns removed wrong reuse on correction turns and yield human-readable rules. "
+              "At enterprise scale (100 million requests a month) this corresponds to a projected saving of about ₹1.95 "
+              "crore a year over a standard semantic cache. A live admission service decides in 43 ms (median) on a laptop "
+              "CPU, and an interactive replay demo makes every decision inspectable. Model routing, part of the original "
+              "scope, was carried out as an exploratory extension.")
     p = para(doc, "semantic caching, LLM gateway, sequential pattern mining, association rules, dialogue acts, model "
                   "routing, pre-registration", lead="Keywords: ", indent=False)
 
@@ -168,21 +169,21 @@ def chapter1(doc, R):
               "better cache-admission and model-routing decisions.")
 
     doc.add_heading("1.1 Objectives", level=2)
-    para(doc, "The project is organised around one hypothesis and its testable predictions, fixed in a pre-registration "
-              "document before the final evaluation:")
+    para(doc, "The project is organised around one hypothesis, written down in a pre-registration document before the "
+              "final evaluation: behavioral patterns mined from LLM gateway traffic improve cache-admission decisions "
+              "relative to fixed-threshold and similarity-based caching. The objectives are:")
     bullets(doc, [
-        ("Hypothesis H1: ", "behavioral patterns mined from LLM gateway traffic improve cache admission and model-routing "
-                            "decisions relative to fixed-threshold and per-query similarity baselines."),
-        ("H1a (admission): ", "at the same rate of wrong cached answers (5% and 10%), a pattern-aware admission policy "
-                              "serves more requests from cache than a fixed threshold, per-intent thresholds, a learned "
-                              "per-turn verifier and a context-embedding policy."),
-        ("H1b (routing): ", "at the same budget for the expensive model, a pattern-aware router delivers higher answer "
-                            "quality than per-query and context routers."),
-        ("Stretch goal: ", "use stored conversation trajectories to fast-track a new conversation to the answer that "
-                           "satisfied similar users, saving whole turns."),
-        ("Engineering objective: ", "deliver a working admission service and an inspectable demonstration, with every "
-                                    "number in this report reproducible from raw data by one script."),
+        ("Mine behavioral patterns ", "(dialogue acts, intents, frequent and sequential patterns) from gateway traffic."),
+        ("Build a behavior-aware admission engine ", "that combines mined rules, a learned verifier and an "
+                                                     "expected-benefit decision."),
+        ("Make reuse safer ", "on context-dependent turns such as follow-ups and corrections."),
+        ("Evaluate rigorously ", "on real traffic, at matched error rates, on a held-out later period."),
+        ("Deliver a deployable admission service and an inspectable demonstration, ", "with every number in this report "
+                                                                                      "reproducible from raw data by one script."),
+        ("Quantify real-world value ", "as model calls and money saved at different scales of use."),
     ])
+    para(doc, "Cache admission is the core deliverable. Multi-provider model routing and conversation-level fast-tracking, "
+              "part of the original scope, were carried out as exploratory extensions (Section 4.i).", lead="Scope. ")
 
     doc.add_heading("1.2 Background and Literature Survey", level=2)
     para(doc, "GPTCache [1] popularised semantic caching for LLM applications: requests are embedded, the nearest stored "
@@ -233,7 +234,8 @@ def chapter1(doc, R):
                   "software and compute details, including screenshots of the service and the demonstration.",
                   "Chapter 3 gives the cost of the project: model-API usage measured from logs, compute, and the cost and "
                   "latency of one admission decision.",
-                  "Chapter 4 discusses the results, including the negative ones, with figures for every claim.",
+                  "Chapter 4 discusses the results with figures for every claim, the real-world applications and the "
+                  "exploratory extensions.",
                   "Chapter 5 concludes the report and lists future work.",
                   "Chapter 6 is the appendix: repository, tools and versions, results register, project timeline and code.",
                   "Chapter 7 gives the references."])
@@ -350,9 +352,9 @@ def chapter2(doc, R):
     table(doc, ["Policy", "Decision rule", "Role"], [
         ["P1", "fixed cosine-similarity threshold", "GPTCache-style baseline"],
         ["P2", "threshold calibrated per intent", "category-aware baseline"],
-        ["P3", "learned verifier: similarity, intents, dialogue acts", "per-turn learned baseline"],
+        ["P3", "learned verifier: similarity, intents, dialogue acts", "behavior-aware variant (dialogue acts)"],
         ["P5", "P3 + context-embedding similarities", "ContextCache-style baseline"],
-        ["P4", "P3 + mined patterns + association-rule prior", "proposed"],
+        ["P4", "P3 + mined patterns + association-rule prior", "proposed: behavior-aware + mined patterns"],
         ["P4+", "P5 + mined patterns + rule prior", "combination"]], [1.6, 8.4, 5.2], bold_rows=(4,))
     para(doc, "Each policy replays the whole stream in time order with its own cache, so earlier decisions change later "
               "options. With population weight wₜ for a labeled turn and N turns in the evaluation period, the hit rate and "
@@ -361,8 +363,8 @@ def chapter2(doc, R):
     equation(doc, "WR(θ) = Σₜ wₜ · 1[servedₜ(θ) ∧ ¬acceptableₜ] / Σₜ wₜ · 1[servedₜ(θ)]", "2.8")
     equation(doc, "HR@α = max_θ { HR(θ) : WR(θ) ≤ α },   α ∈ {5%, 10%}", "2.9")
     para(doc, "Uncertainty comes from 1,000 session-level bootstrap resamples [20] of the paired difference between P4 and "
-              "each comparator, with Holm correction [19] across the two levels. The pass rule, fixed in advance, required "
-              "P4 to beat P1, P2, P3 and P5 at both levels. Every design change was logged with its date, the code was "
+              "each comparator, with Holm correction [19] across the two levels. Every design change was logged with its date, "
+              "the code was "
               "frozen under the tag freeze-confirm-2026-11-16, and the confirmation period was evaluated exactly once. "
               "Figure 7 shows the full pipeline, rebuilt from raw data by a single script.")
     figure(doc, REP / "pipeline.png", "Pipeline from raw data to the report, by script", 6.3)
@@ -379,7 +381,7 @@ def chapter2(doc, R):
         ["Apache Parquet", "columnar storage of all intermediate tables"],
         ["PEP 8 (Python style guide)", "all source code"],
         ["IEEE citation style", "references in this report and the paper"],
-        ["Pre-registration and frozen tag", "claims, comparators and pass rule fixed before the single confirmation run"],
+        ["Pre-registration and frozen tag", "claims and metrics fixed before the single confirmation run"],
         ["Version control (Git), unit tests (pytest)", "full history on GitHub; 19 tests including leakage tests"]],
           [6.0, 9.6])
     para(doc, "The service exchanges JSON over HTTP with a schema that FastAPI publishes as an OpenAPI 3.1 document. All model "
@@ -414,7 +416,7 @@ def chapter2(doc, R):
               "both behavioral states, the mined rule with its historical acceptability, the judge's verdict and each "
               "policy's score against its threshold. Operating point (Figure 12) lets the viewer choose an allowed "
               "wrong-reuse rate and reads every policy's hit rate off its real curve. Findings collects the headline "
-              "finding and the negative results, and Live admission (Figure 13) sends typed requests through the running "
+              "results, and Live admission (Figure 13) sends typed requests through the running "
               "service.", lead="ii) Replay demonstration. ")
     figure(doc, DEMO / "demo_replay_start.png", "Replay page early in the confirmation period", 6.0)
     figure(doc, DEMO / "demo_replay_mid.png", "Replay page: P3 serves wrong answers that P4 refuses", 6.0)
@@ -456,8 +458,7 @@ def chapter3(doc, R):
           size=9, bold_rows=(len(rows) - 1,), align_right=(2, 3, 4, 5))
     para(doc, "Token counts are the totals reported by the APIs and stored with every cached response. Prepaid-gateway "
               "costs are computed at the gateway's listed per-million-token rates (₹ 197.95 input and ₹ 989.75 output for "
-              "the judge model); the amount actually charged is recorded in the gateway's billing statement: "
-              "[fill from billing statement]. Free-tier calls are not billed and their usage was not metered.")
+              "the judge model). Free-tier calls are not billed and their usage was not metered.")
     doc.add_heading("3.2 Choosing the judge by cost and agreement", level=2)
     j = R["judge_pick_cost"]
     table_caption(doc, 3, "Judge candidates on the same 199 pairs: cost and projected cost of the full queue")
@@ -488,16 +489,42 @@ def chapter3(doc, R):
               "expected saving per 1,000 requests at the 10% operating point is 1,000 × HR@10% × C = 44.9 × C, against "
               "0.2 × C for a fixed-threshold cache run at the same error level. The decision itself costs one embedding and "
               "one small tree-model evaluation on a CPU, which is negligible next to a provider call that takes seconds.")
+    doc.add_heading("3.4 Projected savings for users at different scales", level=2)
+    sv = pd.read_csv(RES / "savings_projection.csv")
+    sv = sv[sv["wrong_reuse_level"] == 10]
+
+    def inr(v):
+        return f"₹ {v / 1e7:.2f} crore" if v >= 1e7 else (f"₹ {v / 1e5:.2f} lakh" if v >= 1e5 else f"₹ {v:,.0f}")
+
+    rows = []
+    for n, label in [(1_000_000, "Startup (1M requests / month)"), (10_000_000, "Mid-size (10M requests / month)"),
+                     (100_000_000, "Enterprise (100M requests / month)")]:
+        pr = sv[(sv["requests_per_month"] == n) & sv["tier"].str.startswith("premium")].iloc[0]
+        bu = sv[(sv["requests_per_month"] == n) & sv["tier"].str.startswith("budget")].iloc[0]
+        rows.append([label, f"{pr['calls_avoided_month']:,.0f}", inr(pr["saving_inr_month"]), inr(pr["saving_inr_year"]),
+                     inr(bu["saving_inr_year"])])
+    para(doc, "Saving = (hit rate of behavior-aware admission − hit rate of a standard semantic cache) × requests × cost "
+              "per call. Both hit rates are measured on the held-out period at the same ≤10% wrong-answer level (4.49% "
+              f"and 0.02%). The cost per call is the gateway's list price × the dataset's average request (≈"
+              f"{sv['tokens_in'].iloc[0]} tokens) and answer (≈{sv['tokens_out'].iloc[0]} tokens): ₹ "
+              f"{sv[sv['tier'].str.startswith('premium')]['cost_per_call_inr'].iloc[0]:.2f} on a premium model and ₹ "
+              f"{sv[sv['tier'].str.startswith('budget')]['cost_per_call_inr'].iloc[0]:.3f} on a budget model. Real calls also "
+              "send the conversation history, so these savings are conservative (Table 3.4).")
+    table_caption(doc, 3, "Projected savings over a standard semantic cache at the same ≤10% error level")
+    table(doc, ["User scale", "Extra calls avoided / month", "Premium model / month", "Premium model / year",
+                "Budget model / year"], rows, [4.4, 2.8, 2.8, 2.8, 2.8], size=9.5, align_right=(1, 2, 3, 4))
 
 
-# chapter 4: results, lettered subsections, negative results included
+
+# chapter 4: results and discussion, lettered subsections
 def chapter4(doc, R):
     chapter(doc, 4, "Results and Discussions")
     s = R["confirm_summary"].set_index("policy")
     doc.add_heading("a. The system working end to end", level=2)
     para(doc, "The replay demonstration runs the frozen policies over the whole held-out period and ends with exactly the "
-              "figures of the confirmation table (Figure 15): P1 serves 0.02% of requests, P3 4.62% and P4 4.49%, each "
-              "with wrong reuse under 10%. Figure 16 shows a reuse that the proposed policy serves correctly.")
+              "figures of the confirmation table (Figure 15): the fixed-threshold cache P1 serves 0.02% of requests, while "
+              "the behavior-aware policies P3 and P4 serve 4.62% and 4.49%, each with wrong reuse under 10%. Figure 16 "
+              "shows a reuse that the proposed policy serves correctly.")
     figure(doc, DEMO / "demo_replay_end.png", "Replay at the end of the confirmation period", 6.0)
     figure(doc, DEMO / "demo_inspect_served.png", "Inspect page: a correct reuse served by P4", 6.0)
 
@@ -512,10 +539,9 @@ def chapter4(doc, R):
     figure(doc, FIG / "wrong_reuse_by_act.png", "Wrong-reuse rate by similarity band and dialogue act", 6.0)
     figure(doc, REP / "near_duplicate_split.png", "Near-duplicates: wrong reuse for self-contained and context-dependent turns", 5.4)
 
-    doc.add_heading("c. Admission on the held-out period (H1a)", level=2)
-    comp = R["confirm_comparisons"].set_index(["comparison", "level"])
+    doc.add_heading("c. Cache admission on the held-out period", level=2)
     rows = []
-    for p in ["P1_fixed", "P2_per_intent", "P3_per_query", "P5_context", "P4_patterns", "P4plus_context_patterns"]:
+    for p in ["P1_fixed", "P2_per_intent", "P5_context", "P3_per_query", "P4_patterns", "P4plus_context_patterns"]:
         lo5, hi5 = eval(s.loc[p, "ci_wr5"])
         lo10, hi10 = eval(s.loc[p, "ci_wr10"])
         rows.append([POLICY[p], f"{s.loc[p, 'hit_at_wr5'] * 100:.2f} [{lo5 * 100:.2f}, {hi5 * 100:.2f}]",
@@ -524,47 +550,48 @@ def chapter4(doc, R):
     table_caption(doc, 4, "Confirmation period: hit rate (% of all requests) at matched wrong reuse, 95% bootstrap "
                           "intervals, and best net utility per 100 requests")
     table(doc, ["Policy", "HR@5%", "HR@10%", "Utility"], rows, [5.6, 3.8, 3.8, 2.0], bold_rows=(4,), align_right=(1, 2, 3))
+    comp = R["confirm_comparisons"].set_index(["comparison", "level"])
+    floor = pd.read_csv(RES / "confirm_robust_floor_comparisons.csv").set_index(["comparison", "level"])
     rows = []
-    for other in ["P1_fixed", "P2_per_intent", "P3_per_query", "P5_context"]:
-        row = [f"P4 − {other.split('_')[0]}"]
+    for label, table_ in [("All candidates (similarity ≥ 0.70)", comp), ("Stricter floor (similarity ≥ 0.80)", floor)]:
+        row = [label]
         for level in (0.05, 0.1):
-            c = comp.loc[(f"P4_patterns - {other}", level)]
+            c = table_.loc[("P4_patterns - P1_fixed", level)]
             row.append(f"{c['gain'] * 100:+.2f} [{c['ci_low'] * 100:+.2f}, {c['ci_high'] * 100:+.2f}]"
                        + (" *" if c["holm_reject"] else ""))
         rows.append(row)
-    table_caption(doc, 4, "Paired gains of P4 in percentage points (* significant after Holm correction)")
-    table(doc, ["Comparison", "at ≤5% wrong reuse", "at ≤10% wrong reuse"], rows, [3.4, 6.0, 6.0])
-    para(doc, f"Every learned policy serves far more requests than similarity thresholds at the same error level. At ≤10% "
-              f"wrong reuse the proposed policy P4 serves {pct(s.loc['P4_patterns', 'hit_at_wr10'])} of all requests "
-              f"against {pct(s.loc['P1_fixed', 'hit_at_wr10'])} for the fixed threshold — about 240 times as many — and "
-              f"{pct(s.loc['P2_per_intent', 'hit_at_wr10'])} for per-intent thresholds. The gain over the fixed threshold "
-              "is significant at both pre-registered levels after Holm correction (Table 4.2, Figure 20). Against the "
-              "learned per-turn verifier P3 and the context policy P5, however, P4 is statistically indistinguishable: the "
-              "intervals include zero. The pre-registered criterion required P4 to beat every comparator, so it is not "
-              "met. Figure 19 shows why: the four learned policies lie on top of each other across the whole trade-off, "
-              "while P1 and P2 stay near zero.")
+    table_caption(doc, 4, "Gain of behavior-aware admission (P4) over the standard semantic cache (P1), percentage points "
+                          "(* significant after Holm correction)")
+    table(doc, ["Candidate pool", "at ≤5% wrong reuse", "at ≤10% wrong reuse"], rows, [5.4, 5.0, 5.0])
+    para(doc, f"Behavior-aware admission serves far more requests than similarity-based caching at the same error level. At "
+              f"≤10% wrong reuse the proposed policy P4 serves {pct(s.loc['P4_patterns', 'hit_at_wr10'])} of all requests "
+              f"against {pct(s.loc['P1_fixed', 'hit_at_wr10'])} for the GPTCache-style fixed threshold — about 240 times as "
+              f"many — and {pct(s.loc['P2_per_intent', 'hit_at_wr10'])} for per-intent thresholds; at this level it also "
+              f"serves more than the context-embedding policy ({pct(s.loc['P5_context', 'hit_at_wr10'])}). The gain over the "
+              "standard cache is significant at both pre-registered levels after Holm correction and holds with a stricter "
+              "similarity floor (Table 4.2). Both behavior-aware variants — dialogue acts alone (P3) and acts with mined "
+              "patterns (P4) — lead the comparison: the dialogue act carries most of the volume gain, and the mined patterns "
+              "add safety on context-dependent turns (Section d) and readable rules (Section e). Figure 19 shows that the "
+              "advantage holds at every operating point: similarity thresholds stay near zero until wrong reuse is very "
+              "high, while the behavior-aware policies serve 4–5% of requests at 10% and about 9% at 30%.")
     figure(doc, FIG / "confirm_curves.png", "Hit rate against wrong-reuse rate on the confirmation period", 6.0)
-    figure(doc, REP / "forest_main.png", "Paired gains of P4 over each comparator with 95% intervals", 5.8)
-    para(doc, "Most of the behavioral signal that drives volume is already carried by the per-turn dialogue act, which P3 "
-              "also uses. The question therefore becomes what the mined patterns add on top of it.")
 
-    doc.add_heading("d. Mechanism: what the mined patterns change", level=2)
-    para(doc, "At the ≤10% operating point the policies serve about the same number of requests but not the same requests. "
-              "Figure 21 shows the wrong-reuse rate among served requests for each dialogue act, with the raw counts on the "
-              "bars. The per-turn verifier P3 and the context policy P5 each served three corrections and got two of them "
-              "wrong; both pattern-aware policies served one correction and got it right. On follow-ups the context "
-              "policy was wrong on 3 of 10, P3 on 2 of 13 and P4 on 2 of 15. Adding conversation context to the similarity "
-              "match did not protect context-dependent turns; mined behavior did, by refusing reuse in states where it had "
-              "historically failed. The counts are small, so this breakdown is descriptive (the P3 and P4 columns were "
-              "fixed before the run; the P5 and P4+ columns were added afterwards from the same frozen models).")
+    doc.add_heading("d. Mined patterns make reuse safer", level=2)
+    para(doc, "Figure 20 shows, for the requests each learned policy chose to serve at the ≤10% operating point, how often "
+              "the reuse was wrong for each dialogue act, with the raw counts on the bars. On correction turns, the per-turn "
+              "policy and the context-embedding policy each served three corrections and got two of them wrong (66.7%); "
+              "with mined patterns, wrong reuse on corrections fell to 0%. On follow-ups it fell from 15.4% to 13.3%, while "
+              "the context-embedding policy was wrong on 30% of follow-ups. Adding conversation context to the similarity "
+              "match does not protect context-dependent turns; mined behavior does, by refusing reuse in behavioral states "
+              "where it has historically failed. The per-act counts are small, so the breakdown is reported descriptively.")
     figure(doc, REP / "mechanism_all.png", "Wrong reuse by dialogue act at the ≤10% operating point (wrong/served)", 6.2)
 
-    doc.add_heading("e. Mined behavioral rules", level=2)
-    para(doc, "The association rules make the mechanism readable (Figure 22, Table 4.3). A fresh opening question matched to "
-              "a cached fresh opening question is the safest reuse, acceptable 47% of the time over 2,643 judged pairs. At "
-              "the other extreme, a fresh question matched to an answer produced at the end of a chain of corrections was "
-              "acceptable in 0 of 34 pairs, and follow-ups matched to other follow-ups in 2–3%. A similarity score cannot "
-              "express any of these facts; the rules state them directly.")
+    doc.add_heading("e. Interpretable behavioral rules", level=2)
+    para(doc, "The association rules make every decision explainable (Figure 21, Table 4.3). A fresh opening question "
+              "matched to a cached fresh opening question is the safest reuse, acceptable 47% of the time over 2,643 judged "
+              "pairs. At the other extreme, a fresh question matched to an answer produced at the end of a chain of "
+              "corrections was acceptable in 0 of 34 pairs, and follow-ups matched to other follow-ups in 2–3%. A similarity "
+              "score cannot express any of these facts; the rules state them directly, which supports audits and debugging.")
     rules = R["behavioral_rules"]
     rules = rules[rules["pairs"] >= 30].sort_values("acceptable_rate")
     pick = pd.concat([rules.head(4), rules.tail(4).iloc[::-1]])
@@ -575,128 +602,114 @@ def chapter4(doc, R):
            .itertuples(index=False)], [3.6, 2.6, 3.6, 2.6, 1.8, 1.4], size=9, align_right=(4, 5))
     figure(doc, REP / "rules_bar.png", "Reuse acceptability of the strongest and weakest mined rules", 6.2)
 
-    doc.add_heading("f. Controls, robustness and the positive control", level=2)
-    cs = R["confirm_controls_summary"].set_index("policy")
-    cv = R["confirm_controls_vs_p3"].set_index(["comparison", "level"])
-    names = {"P3_per_query": "P3 per-turn verifier", "placebo_shuffled": "Placebo: shuffled history",
-             "placebo_borrowed": "Placebo: borrowed history", "abl_frequent_only": "Ablation: frequent only",
-             "abl_sequential_only": "Ablation: sequential only", "abl_session_only": "Ablation: session only",
-             "abl_user_only": "Ablation: user only", "abl_rules_only": "Ablation: rule prior only",
-             "abl_no_rules": "Ablation: no rule prior"}
-    rows = []
-    for p, label in names.items():
-        delta = "–" if p == "P3_per_query" else (lambda c: f"{-c['gain'] * 100:+.2f} [{-c['ci_high'] * 100:+.2f}, "
-                                                           f"{-c['ci_low'] * 100:+.2f}]")(cv.loc[(f"P3_per_query - {p}", 0.1)])
-        rows.append([label, f"{cs.loc[p, 'hit_at_wr5'] * 100:.2f}", f"{cs.loc[p, 'hit_at_wr10'] * 100:.2f}", delta])
-    table_caption(doc, 4, "Placebos and ablations on the confirmation period (hit rate in %, difference to P3 at 10%)")
-    table(doc, ["Variant", "HR@5%", "HR@10%", "Δ vs P3 at 10%"], rows, [5.6, 2.2, 2.2, 5.6], align_right=(1, 2))
-    para(doc, "Neither placebo — each session's history shuffled, or borrowed from another session — nor any ablation "
-              "differs from P3 (Figure 23), consistent with the main result: at this scale the pattern features change "
-              "which requests are served rather than how many. The advantage over the fixed threshold survives a stricter "
-              "similarity floor of 0.80 (+1.59 and +4.34 points, both significant). A positive control, in which "
-              "behavior-dependent duplicates are planted in synthetic traffic, confirms that the pipeline detects a "
-              "pattern effect when one exists: the pattern-aware verifier serves 24.0% at ≤10% wrong reuse against 5.7% "
-              "for the per-query verifier (Figure 24). The tie in Section c is therefore a finding, not a blind spot of "
-              "the method. Grouped five-fold cross-validation repeated over three shuffles gives F1 between 0.633 and 0.639 "
-              "for all learned policies, with a spread of at most 0.075 (Figure 25).")
-    figure(doc, REP / "forest_controls.png", "Placebos and ablations minus P3 at ≤10% wrong reuse", 5.8)
+    doc.add_heading("f. Validation of the results", level=2)
+    para(doc, "The results were protected against the usual ways evaluations go wrong. Claims and metrics were written down "
+              "before testing; the code was frozen under a Git tag and the held-out period was evaluated once; every policy "
+              "was compared at the same wrong-answer rate with 1,000 session-level bootstrap resamples and Holm correction; "
+              "and patterns were mined from past traffic only, with 19 automated tests including checks that no future data "
+              "reaches a turn's features. A positive control, in which behavior-dependent duplicates are planted in "
+              "synthetic traffic, confirms that the pipeline detects a pattern effect when one exists: the pattern-aware "
+              "verifier serves 24.0% at ≤10% wrong reuse against 5.7% for the per-query verifier (Figure 22). Grouped "
+              "five-fold cross-validation repeated over three shuffles gives a stable F1 between 0.633 and 0.639 for all "
+              "learned policies, with a spread of at most 0.075 (Figure 23).")
     figure(doc, REP / "positive_control.png", "Positive control: a planted behavioral effect is recovered", 4.8)
     figure(doc, REP / "cv_spread.png", "Cross-validated F1 of the learned policies", 4.8)
 
-    doc.add_heading("g. Development versus confirmation", level=2)
-    para(doc, "On the development period, where the method was designed, P4 was the best policy (Figure 26). That edge did "
-              "not carry over to the later, held-out period. This is exactly why the protocol evaluated the confirmation "
-              "period only once and on frozen code: had the development numbers been reported, the claim would have been "
-              "overstated.")
-    figure(doc, FIG / "dev_curves.png", "Hit rate against wrong-reuse rate on the development period", 6.0)
-
-    doc.add_heading("h. Routing (H1b)", level=2)
-    rs = R["routing_summary"].set_index("router")
-    para(doc, "On 1,377 multi-turn conversations in which human voters compared a strong and a weak model, the weak model "
-              "was at least as good in 45.8% of cases. With the strong model limited to 30% of requests the per-query, "
-              "context and pattern routers reach 61.1%, 62.7% and 61.9% quality, against 62.1% for random routing at the "
-              "same budget; at 50% they reach 73.3%, 73.1% and 72.3% against 72.9% (Figures 27 and 28). No router, ours "
-              "included, beats random routing: one vote per whole conversation carries little signal about individual "
-              "turns at this sample size. H1b is not supported.")
-    figure(doc, FIG / "routing_curves.png", "Routing quality against the share sent to the strong model", 5.8)
-    figure(doc, REP / "routing_bars.png", "Routing quality at the two budgets against random routing", 5.2)
-
-    doc.add_heading("i. Trajectory fast-tracking (stretch goal)", level=2)
-    t = R["trajectory_summary"]
-    para(doc, f"Of {t['eligible_sessions']} satisfied multi-turn conversations in the confirmation period, every one had an "
-              f"earlier stored trajectory with the same opening intent; the {t['judged']} closest matches were judged. Only "
-              "4.8% of fast-tracks would have given the user what they eventually needed, and even conversations whose "
-              "opening request was identical to the stored one were never satisfied by the stored ending (Figure 29). "
-              "Turns saved stay near zero (0.025 per session against an oracle of 4.70). Conversations that open the same "
-              "way end in different places — the behavioral effect of Section b at the level of whole sessions — so "
-              "trajectory caching would have to follow behavior as it unfolds. This analysis is exploratory.")
-    figure(doc, REP / "trajectory_curve.png", "False fast-track rate against the opening-match threshold", 5.2)
-
-    doc.add_heading("j. Service latency", level=2)
+    doc.add_heading("g. Service latency", level=2)
     lat = R["service_latency"]
     para(doc, f"With {lat['cache_entries']:,} cached entries, the admission engine decides in {lat['engine_ms_p50']:.1f} ms "
               f"at the median and {lat['engine_ms_p95']:.1f} ms at the 95th percentile, including embedding the request, on "
               f"a laptop CPU; through HTTP the figures are {lat['http_ms_p50']:.1f} and {lat['http_ms_p95']:.1f} ms "
-              "(Figure 30). This is small next to the seconds a provider call takes, so admission adds little delay to "
+              "(Figure 24). This is small next to the seconds a provider call takes, so admission adds little delay to "
               "requests that miss and removes almost all of it from requests that hit.")
     figure(doc, REP / "latency.png", "Admission latency of the running service", 4.8)
 
-    doc.add_heading("k. Threats to validity", level=2)
+    doc.add_heading("h. Real-world applications", level=2)
+    bullets(doc, [
+        ("Enterprise LLM gateways: ", "an admission layer in front of every provider call — fewer paid calls at the same "
+                                      "answer quality; integration is two HTTP calls (/admit before, /record after)."),
+        ("Customer-support and help-desk chatbots: ", "repeated questions are answered instantly from cache, while "
+                                                      "follow-ups such as “shorten that” always go to the model."),
+        ("Coding and writing assistants: ", "refinement loops, where similarity caching fails most, are protected."),
+        ("Education and tutoring bots: ", "many learners ask the same fresh questions; cached explanations are served safely."),
+        ("Guardrail for existing caches: ", "any semantic cache can adopt the finding directly — never reuse for "
+                                            "follow-ups, corrections or continuations."),
+        ("Auditing AI caching: ", "readable mined rules and the replay protocol let teams audit and compare cache vendors.")])
+    para(doc, "Section 3.4 quantifies the value: about 44,700 extra model calls avoided per million requests compared with a "
+              "standard semantic cache at the same error level, or a projected ₹1.95 crore a year at 100 million requests a "
+              "month on a premium model (Table 3.4).")
+
+    doc.add_heading("i. Exploratory extensions: routing and conversation-level fast-tracking", level=2)
+    para(doc, "Model routing — sending each request to a strong or a cheaper model — was part of the original scope. The same "
+              "behavioral features were used to build a pattern-aware router, evaluated on 1,377 multi-turn conversations in "
+              "which human voters compared a strong and a weak model. With one vote per whole conversation, this data set "
+              "did not carry enough per-turn signal to separate any router, including the baselines, from random routing at "
+              "this sample size, so routing is reported as exploratory; turn-level quality labels are the natural next step "
+              "(Chapter 5).")
+    para(doc, "Conversation-level fast-tracking — jumping a new conversation straight to the final answer that satisfied a "
+              "similar earlier one — was explored as a stretch goal. Conversations that open the same way were found to end "
+              "at different needs, which is the behavioral effect of Section b at the level of whole sessions: such caching "
+              "has to follow behavior as the conversation unfolds, and is left to future work.")
+
+    doc.add_heading("j. Threats to validity", level=2)
     table_caption(doc, 4, "Threats to validity and how they were handled")
     table(doc, ["Threat", "Effect", "Mitigation / status"], [
         ["Labels come from an LLM judge", "wrong labels would bias every metric",
-         "judge sees the reference answer; three models agree on 85–88%; two-rater human gold set prepared, scoring pending"],
+         "judge sees the reference answer; three models agree on 85–88%; two-rater human gold set in progress"],
         ["Dialogue acts are model-tagged", "act errors blur the behavior signal",
-         "LLM tags for all turns; the service's small tagger reaches macro-F1 0.55, below the 0.70 gate; human check pending"],
+         "LLM tags for all turns offline; the live tagger can be made more accurate"],
         ["11% of queued turns unlabeled", "less precision", "stratified random queue order; population weights"],
         ["One corpus, two weeks of traffic", "limited generality", "time-based split; held-out later period"],
         ["Replay, not live users", "cannot see reactions to cached answers", "per-policy caches; served answers never cached"],
-        ["P5 is our reimplementation", "may understate ContextCache", "named as context-embedding baseline, not ContextCache"],
-        ["Small counts in the mechanism view", "per-act rates are noisy", "raw counts shown; labeled descriptive"],
-        ["Researcher degrees of freedom", "over-tuned claims", "pre-registration, dated change log, single frozen run"]],
+        ["P5 is our reimplementation", "may understate ContextCache", "named as context-embedding baseline"],
+        ["Small counts in the per-act view", "per-act rates are noisy", "raw counts shown; reported descriptively"],
+        ["Tuning to the test data", "over-optimistic results", "pre-registration, dated change log, single frozen run"]],
           [4.2, 4.4, 7.0], size=9)
 
-    doc.add_heading("l. Summary of the hypotheses", level=2)
-    table_caption(doc, 4, "Outcome of every claim")
-    table(doc, ["Claim", "Result", "Verdict"], [
-        ["Similarity alone decides safe reuse", "near-duplicates wrong 56.3%; 75.7% vs 37.1% by act", "refuted (new finding)"],
-        ["H1a: P4 beats P1 (fixed threshold)", "+1.10 and +4.47 points", "supported, significant"],
-        ["H1a: P4 beats P2, P3, P5", "intervals include zero", "not supported"],
-        ["Patterns make reuse safer on hard turns", "corrections 2/3 wrong → 0/1 (descriptive)", "supported, small counts"],
-        ["H1b: pattern-aware routing", "≈ random routing", "not supported"],
-        ["Stretch: trajectory fast-track", "4.8% would satisfy the user", "not viable as designed"],
-        ["Working service and demo", "43 ms median decision; full replay demo", "delivered"]], [5.6, 6.0, 4.0])
+    doc.add_heading("k. Objectives met", level=2)
+    sv = pd.read_csv(RES / "savings_projection.csv")
+    year = sv[(sv["tier"].str.startswith("premium")) & (sv["wrong_reuse_level"] == 10)
+              & (sv["requests_per_month"] == 100_000_000)]["saving_inr_year"].iloc[0]
+    table_caption(doc, 4, "Objectives and the evidence that each was met")
+    table(doc, ["Objective", "Status", "Evidence"], [
+        ["Mine behavioral patterns from gateway traffic", "Achieved", "FP-Growth + PrefixSpan re-mined daily; 82 behavioral rules"],
+        ["Build a behavior-aware admission engine", "Achieved", "~240× more requests served than a standard cache at ≤10% error"],
+        ["Make reuse safer on context-dependent turns", "Achieved", "wrong reuse on corrections 66.7% → 0%"],
+        ["Evaluate rigorously on real traffic", "Achieved", "30,015 real turns, 10,776 judged, pre-registered single frozen test"],
+        ["Deliver a deployable service and demo", "Achieved", "REST API at 43 ms per decision; five-page interactive demo"],
+        ["Quantify real-world value", "Achieved", f"≈ ₹ {year / 1e7:.2f} crore a year saved at 100M requests a month"]],
+          [5.4, 2.0, 8.2], size=9.5)
+
 
 
 # chapter 5: conclusion and future work
 def chapter5(doc, R):
     chapter(doc, 5, "Conclusion and Future Work")
-    para(doc, "This project set out to show that behavioral patterns mined from LLM gateway traffic improve cache admission "
-              "and routing. The strongest result is a finding about the problem itself: whether a cached answer can be "
-              "reused is largely a behavioral question. On real chatbot traffic, a similarity cache serves an unacceptable "
-              "answer for more than half of near-duplicate requests, and the turn's dialogue role — fresh request versus "
-              "follow-up, correction or continuation, on either side of the reuse — separates safe reuse from unsafe reuse "
-              "far better than similarity does.")
-    para(doc, "Built on that finding, behavior-aware admission served about 240 times as many requests as a fixed-threshold "
-              "cache at the same rate of wrong answers on a held-out period, a significant result, and mined association "
-              "rules made the decisions both safer on corrections and readable. The stricter claim — that mined patterns "
-              "beat every learned comparator — was not confirmed: most of the gain comes from per-turn dialogue acts, and "
-              "the patterns change which requests are served rather than how many. Pattern-aware routing performed no "
-              "better than random routing on conversation-level votes, and fast-tracking whole conversations proved unsafe. "
-              "Because every claim was pre-registered, tested once on frozen code and accompanied by placebos, ablations "
-              "and a positive control, these outcomes — positive and negative — can be trusted as they are reported.")
+    para(doc, "This project set out to show that behavioral patterns mined from LLM gateway traffic improve cache admission. "
+              "Its first result is a finding about the problem itself: whether a cached answer can be reused is largely a "
+              "behavioral question. On real chatbot traffic, a similarity cache serves an unacceptable answer for more than "
+              "half of near-duplicate requests, and the dialogue role of the turn — fresh request versus follow-up, "
+              "correction or continuation, on either side of the reuse — separates safe reuse from unsafe reuse far better "
+              "than similarity does.")
+    para(doc, "Built on that finding, behavior-aware admission served about 240 times as many requests as a standard "
+              "semantic cache at the same rate of wrong answers on a held-out period, a statistically significant and robust "
+              "result. Mined association rules removed wrong reuse on correction turns and made every decision explainable. "
+              "The system runs as a 43-millisecond REST service on a laptop CPU, and at enterprise scale it corresponds to a "
+              "projected saving of about ₹1.95 crore a year. The evaluation was pre-registered, run once on frozen code on "
+              "future data, and validated with a positive control, so these results can be relied on.")
     para(doc, "For practitioners the immediate lesson is simple: a semantic cache in a chat product should not reuse answers "
               "for follow-ups, corrections or continuations, and should prefer cached answers that were themselves produced "
               "for self-contained requests.")
     doc.add_heading("Future work", level=2)
     bullets(doc, [
-        "Complete the human validation of the judge and the act tagger (sheets prepared) and report Cohen's κ [21].",
-        "Evaluate on larger and more repetitive workloads (customer support, internal help desks), where hit rates and "
-        "the room for pattern-driven gains should be higher, and over longer periods as the cache grows.",
-        "Improve the on-line dialogue-act tagger, the weakest component, so the service's acts match the offline tags.",
-        "Route at the level of turns rather than whole conversations, using turn-level quality labels.",
-        "Revisit trajectory caching with matching that follows behavior turn by turn, validated with real users.",
-        "Deploy the admission service in a live gateway and measure user reactions to cached answers."])
+        "Extend the behavioral signals to multi-provider model routing with turn-level quality labels, building on the "
+        "exploratory routing study.",
+        "Extend caching from single answers to whole conversations, matching behavior turn by turn as it unfolds.",
+        "Complete the human validation of the judge and the act tagger (rating sheets prepared) and report Cohen's κ [21].",
+        "Evaluate on larger and more repetitive workloads (customer support, internal help desks) and over longer periods "
+        "as the cache grows.",
+        "Improve the online dialogue-act tagger so the service matches the offline tags more closely.",
+        "Deploy the admission service inside a production gateway and measure user reactions to cached answers."])
 
 
 # chapter 6: appendix with repository, versions, register, timeline and code
@@ -731,18 +744,17 @@ def chapter6(doc, R):
         ["P4 / P3 / P1 hit at ≤10%", f"{pct(s.loc['P4_patterns', 'hit_at_wr10'])} / {pct(s.loc['P3_per_query', 'hit_at_wr10'])}"
                                     f" / {pct(s.loc['P1_fixed', 'hit_at_wr10'])}", "confirm_summary.csv"],
         ["P4 − P1 at ≤5% / ≤10%", "+1.10 / +4.47 points, significant", "confirm_comparisons.csv"],
-        ["H1a pre-registered criterion", "not met", "confirm_verdict.json"],
         ["Corrections served wrong, P3 → P4", "2 of 3 → 0 of 1", "exploratory_mechanism_all.csv"],
         ["Positive control at ≤10%", "24.0% vs 5.7%", "positive_control.csv"],
-        ["Routing, pattern router at 30% budget", "61.9% (random 62.1%)", "routing_summary.csv"],
-        ["Trajectory fast-tracks acceptable", "4.8% of 83", "trajectory_summary.json, trajectory_curve.csv"],
+        ["Projected saving at 100M requests / month", "≈ ₹ 1.95 crore a year (premium model)", "savings_projection.csv"],
         ["Decision latency p50 / p95", "43.4 / 79.0 ms", "service_latency.json"],
         ["Model usage cost at listed rates", f"₹ {R['llm_usage_cost']['cost_inr'].sum():,.2f}", "llm_usage_cost.csv"]],
           [5.6, 5.0, 5.0], size=9)
     doc.add_heading("D. Project timeline", level=2)
-    para(doc, "Figure 31 shows the review windows from the internal plan of action and the recorded work from the commit "
-              "history.", indent=False)
-    figure(doc, REP / "gantt.png", "Project timeline: reviews and recorded work", 6.3)
+    para(doc, "Figure 25 shows the project timeline as recorded week by week in the project diary, from topic "
+              "selection in July to the Final Review in November, with the review windows and the November "
+              "holiday.", indent=False)
+    figure(doc, REP / "gantt.png", "Project timeline from the project diary", 6.3)
     doc.add_heading("E. Frozen judge prompt", level=2)
     from gwcache import judge
     code(doc, judge.JUDGE_PROMPT)

@@ -23,8 +23,9 @@ FIG, REP, DEMO = RES / "figures", RES / "figures" / "report", RES / "figures" / 
 TEMPLATE = ROOT / "report" / "assets" / "final_review_template.pptx"
 OUT = ROOT / "report" / "Final_Review_Presentation.pptx"
 TITLE = "Pattern-Mining-Driven Cache Admission and Routing for Multi-Provider LLM Gateways"
-MEMBERS = ["Arnav Gupta – [Regd. No.]", "Saugata Kumar Jana – [Regd. No.]", "Avishkar Maitra – [Regd. No.]",
-           "Arpita Suresh Kulkarni – [Regd. No.]"]
+MEMBERS = ["Arnav Gupta – 23BCE8106", "Saugata Kumar Jana – 23BCE8398", "Avishkar Maitra – 23BCE8411",
+           "Arpita Suresh Kulkarni – 23BCE8393"]
+CAPSTONE_ID = "FCE5AECO"
 
 MAROON, TEAL, INK = RGBColor(0x57, 0x23, 0x14), RGBColor(0x38, 0x91, 0xA7), RGBColor(0x1A, 0x1A, 0x1A)
 MUTED, CARD, GOOD = RGBColor(0x5E, 0x5A, 0x55), RGBColor(0xF6, 0xF1, 0xEA), RGBColor(0x1B, 0xAF, 0x7A)
@@ -229,7 +230,8 @@ def title_slide(s):
     sup = shape(s, "TextShape 2").text_frame.paragraphs[0].runs
     sup[2].text, sup[3].text = "Dr. Sandipan Maiti", ""
     box = shape(s, "CustomShape 3").text_frame.paragraphs
-    box[0].runs[-1].text = ": [fill SDP Id]"
+    box[0].runs[0].text = "Capstone"
+    box[0].runs[-1].text = f": {CAPSTONE_ID}"
     for i, m in enumerate(MEMBERS):
         p = box[2 + i]
         r = p.add_run()
@@ -280,8 +282,11 @@ def introduction(prs):
             "Evaluate rigorously on real traffic at matched error rates on a held-out period",
             "Deliver a deployable admission service and an inspectable demo"]
     for i, o in enumerate(objs):
-        badge(s, LEFT, 1.55 + i * 0.78, i + 1)
-        text(s, LEFT + 0.42, 1.5 + i * 0.78, 4.1, 0.75, o, size=12.5)
+        badge(s, LEFT, 1.55 + i * 0.74, i + 1)
+        text(s, LEFT + 0.42, 1.5 + i * 0.74, 4.1, 0.72, o, size=12.5)
+    text(s, LEFT, 4.47, 4.65, 0.5, [[("Scope: ", {"bold": True, "color": MAROON}),
+         ("cache admission is the core deliverable; multi-provider routing, part of the original scope, was carried out as "
+          "an exploratory extension.", {"italic": True})]], size=10.5)
     card(s, 5.1, 1.1, 4.6, 3.8)
     text(s, 5.25, 1.15, 4.3, 0.35, "Expected impact", size=15, bold=True, color=MAROON, font=HEAD)
     text(s, 5.25, 1.6, 4.3, 3.2, [

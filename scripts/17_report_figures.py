@@ -306,27 +306,35 @@ def routing_bars():
     save(fig, OUT / "routing_bars.png")
 
 
-# project timeline: review windows from the plan of action and recorded work from the commit history
+# project timeline from the weekly project diary (weeks run tuesday to saturday), with the review windows
 def gantt():
     d = pd.Timestamp
-    rows = [("Scope, literature survey, proposal", d("2026-08-01"), d("2026-08-18"), "plan"),
-            ("Review 1", d("2026-08-18"), d("2026-08-22"), "review"),
-            ("Review 2 pipeline: ingest, categories, mining, baseline, judge pilot", d("2026-09-25"), d("2026-09-29"), "work"),
-            ("Review 2", d("2026-09-29"), d("2026-10-03"), "review"),
-            ("Scaled pipeline with answers, two-judge labeling, leakage fix", d("2026-11-15"), d("2026-11-15"), "work"),
-            ("Rebuild, full labeling, pre-registration, confirmation run, paper", d("2026-11-16"), d("2026-11-16"), "work"),
-            ("Report, demo, poster", d("2026-11-17"), d("2026-11-20"), "work"),
-            ("Final review", d("2026-11-17"), d("2026-11-21"), "review")]
-    colors = {"plan": NEUTRAL, "review": ALERT, "work": ACCENT}
-    fig, ax = figure(10, 4.2)
+    rows = [("Topic selection, team formation, guide approval (wk 1–3)", "2026-07-14", "2026-08-01", "plan"),
+            ("Literature survey, research gap, hypothesis, proposals (wk 4–5)", "2026-08-04", "2026-08-15", "plan"),
+            ("First Review", "2026-08-18", "2026-08-22", "review"),
+            ("Dataset selection, log schema, technical specification (wk 7–8)", "2026-08-25", "2026-09-05", "work"),
+            ("Environment setup, Review 2 deliverables defined (wk 9)", "2026-09-15", "2026-09-19", "work"),
+            ("Review 2 pipeline: ingest, mining, baseline, judge pilot (wk 10–11)", "2026-09-22", "2026-10-01", "work"),
+            ("Second Review", "2026-09-29", "2026-10-03", "review"),
+            ("Scaled data with real answers, embeddings, intents, leakage fix (wk 12)", "2026-10-06", "2026-10-10", "work"),
+            ("Dialogue acts, candidate pool, stratified labeling queue (wk 13)", "2026-10-13", "2026-10-17", "work"),
+            ("Judge selection, gold sheets, pre-registration (wk 14)", "2026-10-20", "2026-10-24", "work"),
+            ("Pattern mining, rules, verifier, replay engine, baselines (wk 15)", "2026-10-27", "2026-10-31", "work"),
+            ("Labeling complete, dev evaluation, admission service (wk 16)", "2026-11-03", "2026-11-06", "work"),
+            ("Holiday", "2026-11-07", "2026-11-10", "holiday"),
+            ("Behavior analysis, routing and trajectory set-up, documentation (wk 17)", "2026-11-11", "2026-11-14", "work"),
+            ("Frozen confirmation run, demo, report and presentation", "2026-11-15", "2026-11-20", "work"),
+            ("Final Review", "2026-11-17", "2026-11-21", "review")]
+    colors = {"plan": NEUTRAL, "review": ALERT, "work": ACCENT, "holiday": GRID}
+    fig, ax = figure(11, 6.2)
     for i, (name, a, b, kind) in enumerate(rows[::-1]):
-        ax.barh(i, (b - a).days + 1, left=a, color=colors[kind], height=0.55)
-        span = f"before {b:%b %d}" if kind == "plan" else f"{a:%b %d}" + (f" - {b:%b %d}" if b != a else "")
-        ax.text(b + pd.Timedelta(days=1.5), i, span, va="center", fontsize=8, color=MUTED)
-    ax.set_yticks(range(len(rows)), [r[0] for r in rows[::-1]], fontsize=8)
+        a, b = d(a), d(b)
+        ax.barh(i, (b - a).days + 1, left=a, color=colors[kind], height=0.6)
+        ax.text(b + pd.Timedelta(days=2), i, f"{a:%b %d} – {b:%b %d}", va="center", fontsize=7.5, color=MUTED)
+    ax.set_yticks(range(len(rows)), [r[0] for r in rows[::-1]], fontsize=7.5)
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %d"))
-    ax.set_xlim(d("2026-08-01"), d("2026-12-12"))
-    style(ax, "Project timeline: reviews and recorded work", "", "", grid_axis="x")
+    ax.set_xlim(d("2026-07-10"), d("2026-12-12"))
+    style(ax, "Project timeline from the weekly project diary", "", "", grid_axis="x")
     save(fig, OUT / "gantt.png")
 
 

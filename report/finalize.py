@@ -33,4 +33,4 @@ def finalize(docx: Path) -> None:
 
 
 if __name__ == "__main__":
-    finalize(Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).parent / "Capstone_Report.docx")
+    finalize(Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).parent / "Final_Report.docx")

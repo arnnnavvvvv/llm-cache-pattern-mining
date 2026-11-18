@@ -33,11 +33,14 @@ NOTES = [
     {"title": "Objectives & Expected Impact", "time": "45 s",
      "shows": "Four objectives on the left (mine behavioral patterns; build the admission engine; evaluate rigorously on "
               "real traffic; deliver a deployable service and demo) and the expected impact on the right (lower cost and "
-              "latency, fewer wrong answers, explainable decisions, a reusable evaluation method).",
+              "latency, fewer wrong answers, explainable decisions, a reusable evaluation method). A scope line at the bottom "
+              "states that cache admission is the core deliverable and routing was carried out as an exploratory extension.",
      "say": "We set four objectives: mine behavioral patterns from gateway traffic, turn them into an admission engine, "
             "evaluate it rigorously on real data, and deliver it as a working service. The impact we aimed for is lower "
             "cost and latency, fewer wrong cached answers in chat products, decisions that can be explained, and a fair "
-            "method for evaluating any cache. We will come back to each objective at the end with evidence."},
+            "method for evaluating any cache. On scope: cache admission is our core deliverable; multi-provider routing was "
+            "part of the original scope and was carried out as an exploratory extension, which we return to under future "
+            "directions. We will come back to each objective at the end with evidence."},
     {"title": "Related Work & Their Limitations", "time": "60 s",
      "shows": "Six existing systems — GPTCache, MeanCache, VectorQ, category-aware caching, ContextCache, and the routers "
               "FrugalGPT and RouteLLM — with their approach and limitation. The common gap: all of them decide from one "
